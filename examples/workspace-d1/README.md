@@ -12,16 +12,16 @@ The core idea is identical:
 - **Parent inheritance** — owning a parent grants access to children (userset rewrite in the Zanzibar paper)
 
 What Google added that we don't need:
-- **Zookies** — consistency tokens for stale reads across global replicas. D1 is single-region, so there are no cross-region replicas to go stale. Not needed.
+- **Zookies** — consistency tokens for stale reads across global replicas. D1's read replication handles consistency automatically via the Sessions API. Not needed at this scale.
 - **Leopard indexing** — precomputed group membership for billions of users (not needed at this scale)
-- **Global Spanner replication** — D1 is intentionally single-region SQLite. Workers run globally at the edge but all D1 queries route to one region. The SQL pushdown via `EXISTS` subqueries keeps this fast — permission checks never load tuples into memory per request.
+- **Global Spanner replication** — D1 replicates reads globally and automatically across Cloudflare's network. Workers + D1 both scale out. The SQL pushdown via `EXISTS` subqueries keeps permission checks fast — tuples never loaded into memory per request.
 
 What this adds beyond the paper:
 - **`@cloudflare/shell` `onChange` hook** — automatic tuple lifecycle when files are created/deleted
 - **SQL pushdown** via `@zanzojs/drizzle` — permission checks as `EXISTS` subqueries, never loading tuples into memory per request
 - **Workers-native** — runs in a 128MB isolate, zero external service dependency, zero network hop on check
 
-> **Scaling note:** D1 does not auto-replicate globally. If you need sub-10ms permission checks worldwide, move hot tuples to Cloudflare KV (globally replicated, ~1ms reads). D1 is the right default until you hit that wall.
+> **Scaling note:** D1 global read replication is automatic — Cloudflare provisions replicas in every region and routes reads to the nearest copy transparently. Writes still go to the primary. For this Zanzibar pattern (read-heavy permission checks) that means it scales out globally with zero config.
 
 The library name is literally derived from it: **Zanzo**js = **Zanzi**bar.
 
