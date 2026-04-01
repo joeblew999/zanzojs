@@ -1,5 +1,33 @@
 # workspace-d1
 
+## Google Zanzibar on Cloudflare D1
+
+This pattern is Google Zanzibar — the authorization system behind Google Drive, Gmail, YouTube, and Maps — running natively on Cloudflare Workers + D1 instead of Google Spanner.
+
+The core idea is identical:
+
+- **Tuples** — `(subject, relation, object)` e.g. `User:alice | owner | Directory:/projects/demo`
+- **Namespace model** — schema defines what relations and actions exist per resource type (`schema-fs.ts`, `schema-domain.ts`)
+- **Check** — walk the tuple graph to answer "can actor X do action Y on resource Z?"
+- **Parent inheritance** — owning a parent grants access to children (userset rewrite in the Zanzibar paper)
+
+What Google added that we don't need:
+- **Zookies** — consistency tokens for stale reads across global replicas (irrelevant on D1, single region)
+- **Leopard indexing** — precomputed group membership for billions of users (not needed at this scale)
+- **Global Spanner replication** — Cloudflare's edge handles distribution differently
+
+What this adds beyond the paper:
+- **`@cloudflare/shell` `onChange` hook** — automatic tuple lifecycle when files are created/deleted
+- **SQL pushdown** via `@zanzojs/drizzle` — permission checks as `EXISTS` subqueries, never loading tuples into memory per request
+- **Workers-native** — runs in a 128MB isolate, zero external service dependency, zero network hop on check
+
+The library name is literally derived from it: **Zanzo**js = **Zanzi**bar.
+
+Reference: [Google Zanzibar paper](https://research.google/pubs/zanzibar-googles-consistent-global-authorization-system/)
+
+---
+
+
 ReBAC permission API + `@cloudflare/shell` filesystem worker.
 
 **Port:** 8787 | **Binding:** called by `workspace-d1-app` via Workers Service Binding (RPC)
