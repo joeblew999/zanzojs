@@ -45,7 +45,7 @@ export const ZanzoErrorCode = {
   EXPANSION_ABORTED: 'ZANZO_EXPANSION_ABORTED',
 } as const;
 
-export type ZanzoErrorCodeValue = typeof ZanzoErrorCode[keyof typeof ZanzoErrorCode];
+export type ZanzoErrorCodeValue = (typeof ZanzoErrorCode)[keyof typeof ZanzoErrorCode];
 
 /**
  * Structured error class for all errors thrown by the Zanzo ecosystem.

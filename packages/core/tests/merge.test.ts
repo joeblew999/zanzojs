@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 import { ZanzoBuilder, mergeSchemas, ZanzoEngine, SchemaData } from '../src/index';
 
 describe('Zanzo Schema Composition Feature', () => {
-
   it('should deep merge independent schemas preventing runtime collisions', () => {
     const hrDomain = new ZanzoBuilder()
       .entity('Employee', { actions: ['read', 'fire'], relations: { manager: 'Employee' } })
@@ -32,22 +31,21 @@ describe('Zanzo Schema Composition Feature', () => {
     const domainB = new ZanzoBuilder().entity('User', { actions: ['read'] }).build();
 
     expect(() => mergeSchemas(domainA, domainB)).toThrow(
-      /Schema Merge Collision: The entity 'User' is defined in multiple schemas/
+      /Schema Merge Collision: The entity 'User' is defined in multiple schemas/,
     );
   });
 
   it('should successfully enforce Type Intersections under the hood (Compilation check)', () => {
     const a = new ZanzoBuilder().entity('A', { actions: ['jump'] }).build();
     const b = new ZanzoBuilder().entity('B', { actions: ['run'] }).build();
-    
+
     const merged = mergeSchemas(a, b);
-    
+
     // Virtual compilation check. If this code complies, Intersection works.
     const engine = new ZanzoEngine(merged);
-    
+
     // Type-safe inference assertions
     engine.can('A:1', 'jump', 'A:2');
     engine.can('B:1', 'run', 'B:2');
   });
-
 });

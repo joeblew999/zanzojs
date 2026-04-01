@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { ZanzoBuilder, ZanzoEngine, ZanzoError, ZanzoErrorCode, materializeDerivedTuples } from '../src/index';
+import {
+  ZanzoBuilder,
+  ZanzoEngine,
+  ZanzoError,
+  ZanzoErrorCode,
+  materializeDerivedTuples,
+} from '../src/index';
 
 describe('ZANZO_MISSING_RELATION — Schema Validation', () => {
   it('throws MISSING_RELATION when a permission references an undefined relation', () => {
@@ -126,7 +132,7 @@ describe('ZANZO_CYCLE_DETECTED — Expansion Cycle Detection', () => {
 
     // Should return tuples for Folder:X, Folder:Y, and exactly one for Folder:B
     expect(results.length).toBeGreaterThan(0);
-    const bTuples = results.filter(r => r.object === 'Folder:B');
+    const bTuples = results.filter((r) => r.object === 'Folder:B');
     expect(bTuples.length).toBe(1); // Deduplicated!
   });
 
@@ -210,7 +216,11 @@ describe('ZANZO_INVALID_ENTITY_REF — Entity Format Validation', () => {
   it('throws ZANZO_INVALID_ENTITY_REF when actor or subject/object is not Type:Id format', () => {
     const validSchema = new ZanzoBuilder()
       .entity('User', { actions: [], relations: {} })
-      .entity('Document', { actions: ['read'], relations: { viewer: 'User' }, permissions: { read: ['viewer'] } })
+      .entity('Document', {
+        actions: ['read'],
+        relations: { viewer: 'User' },
+        permissions: { read: ['viewer'] },
+      })
       .build();
 
     const engine = new ZanzoEngine(validSchema);

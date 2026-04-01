@@ -78,14 +78,14 @@ export class PermissionCache {
     });
   }
 
-  /** 
+  /**
    * Invalidates cached entries based on the invalidation strategy.
    * If 'selective', removes only paths that are transitively affected using the provided reachable callback.
    * If 'full' or no tuple provided, clears the whole cache.
    */
   invalidate(
     mutatedTuple?: { subject: string; object: string },
-    isReachable?: (start: string, target: string) => boolean
+    isReachable?: (start: string, target: string) => boolean,
   ): void {
     if (this.invalidationType === 'full' || !mutatedTuple || !isReachable) {
       this.cache.clear();

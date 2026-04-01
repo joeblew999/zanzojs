@@ -1,6 +1,12 @@
 import type { SchemaData } from '../builder/index';
 import type { ZanzoEngine } from '../engine/index';
-import type { AccessibleResult, Tuple, AllSchemaActions, AllSchemaEntities, SchemaEntityRef } from '../types/index';
+import type {
+  AccessibleResult,
+  Tuple,
+  AllSchemaActions,
+  AllSchemaEntities,
+  SchemaEntityRef,
+} from '../types/index';
 import type { CheckResult } from '../engine/trace';
 
 /**
@@ -36,7 +42,9 @@ export class ForBuilder<TSchema extends SchemaData> {
    * console.log(result.trace);   // [{ path: 'owner', target: 'Document:doc1', found: false, subjects: [] }]
    * ```
    */
-  check<TAction extends AllSchemaActions<TSchema> & string>(action: TAction): CheckBuilder<TSchema> {
+  check<TAction extends AllSchemaActions<TSchema> & string>(
+    action: TAction,
+  ): CheckBuilder<TSchema> {
     return new CheckBuilder(this.engine, this.actor, action);
   }
 
@@ -46,7 +54,9 @@ export class ForBuilder<TSchema extends SchemaData> {
    *
    * @example engine.for('User:alice').listAccessible('Document')
    */
-  listAccessible<TEntity extends AllSchemaEntities<TSchema> & string>(entityType: TEntity): AccessibleResult[] {
+  listAccessible<TEntity extends AllSchemaEntities<TSchema> & string>(
+    entityType: TEntity,
+  ): AccessibleResult[] {
     const results: AccessibleResult[] = [];
     const index = this.engine.getIndex();
 
@@ -83,7 +93,12 @@ export class ForBuilder<TSchema extends SchemaData> {
    * results.get('read:Document:doc2');  // false
    * ```
    */
-  canBatch(checks: Array<{ action: AllSchemaActions<TSchema> & string; resource: SchemaEntityRef<TSchema> & string }>): Map<string, boolean> {
+  canBatch(
+    checks: Array<{
+      action: AllSchemaActions<TSchema> & string;
+      resource: SchemaEntityRef<TSchema> & string;
+    }>,
+  ): Map<string, boolean> {
     const results = new Map<string, boolean>();
 
     // Group checks by resource to avoid redundant evaluations
@@ -169,7 +184,9 @@ export class GrantBuilder<TSchema extends SchemaData> {
     private relation: string,
   ) {}
 
-  to<TSubject extends SchemaEntityRef<TSchema> & string>(subject: TSubject): GrantToBuilder<TSchema> {
+  to<TSubject extends SchemaEntityRef<TSchema> & string>(
+    subject: TSubject,
+  ): GrantToBuilder<TSchema> {
     (this.engine as any).validateInput(subject, 'subject');
     return new GrantToBuilder(this.engine, this.relation, subject);
   }
@@ -235,7 +252,9 @@ export class RevokeBuilder<TSchema extends SchemaData> {
     private relation: string,
   ) {}
 
-  from<TSubject extends SchemaEntityRef<TSchema> & string>(subject: TSubject): RevokeFromBuilder<TSchema> {
+  from<TSubject extends SchemaEntityRef<TSchema> & string>(
+    subject: TSubject,
+  ): RevokeFromBuilder<TSchema> {
     (this.engine as any).validateInput(subject, 'subject');
     return new RevokeFromBuilder(this.engine, this.relation, subject);
   }
@@ -256,4 +275,3 @@ export class RevokeFromBuilder<TSchema extends SchemaData> {
     this.engine.removeTuple({ subject: this.subject, relation: this.relation, object });
   }
 }
-

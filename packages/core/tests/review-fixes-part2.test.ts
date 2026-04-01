@@ -8,7 +8,7 @@ describe('Fix 6: Deterministic Date.now() in temporal evaluations', () => {
     // In the old behavior, `Date.now()` was called inside `isExpired` for every edge walked.
     // If we mock Date.now() to increment on every call, the old behavior would
     // validate early edges and reject later edges for the identical expiration timestamp.
-    
+
     const schema = new ZanzoBuilder()
       .entity('User', { actions: [], relations: {} })
       .entity('Folder', {
@@ -24,7 +24,7 @@ describe('Fix 6: Deterministic Date.now() in temporal evaluations', () => {
 
     // Give Alice access to Folder A, expiring at timestamp 100
     engine.grant('viewer').to('User:alice').on('Folder:A').until(new Date(100));
-    
+
     // Connect B -> A, C -> B
     engine.grant('parent').to('Folder:A').on('Folder:B');
     engine.grant('parent').to('Folder:B').on('Folder:C');
@@ -45,7 +45,7 @@ describe('Fix 6: Deterministic Date.now() in temporal evaluations', () => {
       // So alice should be able to view Folder C via inheritance without it randomly expiring mid-traversal.
       const canView = engine.for('User:alice').can('view').on('Folder:C');
       expect(canView).toBe(true);
-      
+
       // Date.now() should only have been called ONCE at the start of engine.can()
       // Wait: uniqueTupleKey, checkRelationsRecursive, etc. don't call Date.now() anymore.
       expect(dateSpy).toHaveBeenCalledTimes(1);
@@ -100,7 +100,7 @@ describe('Fix 7: AbortSignal timeout support in DeferredExpansion.executePending
       .build();
 
     const controller = new AbortController();
-    
+
     const deferred = await materializeDerivedTuples({
       schema,
       newTuple: { subject: 'User:alice', relation: 'viewer', object: 'Folder:A' },
@@ -129,7 +129,7 @@ describe('Fix 7: AbortSignal timeout support in DeferredExpansion.executePending
     } catch (e) {
       const elapsed = Date.now() - start;
       expect(elapsed).toBeLessThan(50); // Rejected quickly (within 50ms)
-      
+
       expect(e).toBeInstanceOf(ZanzoError);
       expect((e as ZanzoError).code).toBe(ZanzoErrorCode.EXPANSION_ABORTED);
     }
@@ -138,12 +138,12 @@ describe('Fix 7: AbortSignal timeout support in DeferredExpansion.executePending
   it('aborts immediately if the signal is already aborted before execution starts', async () => {
     const schema = new ZanzoBuilder()
       .entity('User', { actions: [], relations: {} })
-      .entity('Folder', { actions: [], relations: { parent: 'Folder'} })
+      .entity('Folder', { actions: [], relations: { parent: 'Folder' } })
       .build();
 
     const controller = new AbortController();
     controller.abort(); // Abort BEFORE calling executePending
-    
+
     const deferred = await materializeDerivedTuples({
       schema,
       newTuple: { subject: 'User:alice', relation: 'viewer', object: 'Folder:A' },
@@ -152,6 +152,8 @@ describe('Fix 7: AbortSignal timeout support in DeferredExpansion.executePending
       fetchChildren: async () => ['Folder:B'],
     });
 
-    await expect(deferred.executePending()).rejects.toThrowError(/aborted before execution started/);
+    await expect(deferred.executePending()).rejects.toThrowError(
+      /aborted before execution started/,
+    );
   });
 });

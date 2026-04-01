@@ -9,13 +9,13 @@ const schema = new ZanzoBuilder()
     relations: { workspace: 'Workspace', viewer: 'User' },
     permissions: {
       view: ['viewer'],
-      manage: ['workspace.org.admin']
-    }
+      manage: ['workspace.org.admin'],
+    },
   })
   .entity('Resource', {
     actions: ['view'],
     relations: { viewer: 'User' },
-    permissions: { view: ['viewer'] }
+    permissions: { view: ['viewer'] },
   })
   .build();
 
@@ -34,7 +34,9 @@ function assert(name: string, avg: number, threshold: number, min: number, max: 
 // 1. Benchmark 1: Direct relation, single tuple
 const engine1 = new ZanzoEngine(schema);
 engine1.addTuple({ subject: 'User:1', relation: 'viewer', object: 'Resource:A' });
-let total = 0, min = Infinity, max = 0;
+let total = 0,
+  min = Infinity,
+  max = 0;
 for (let i = 0; i < 10000; i++) {
   const start = performance.now();
   engine1.can('User:1', 'view', 'Resource:A');
@@ -50,7 +52,9 @@ const engine2 = new ZanzoEngine(schema);
 engine2.addTuple({ subject: 'User:1', relation: 'admin', object: 'Org:A' });
 engine2.addTuple({ subject: 'Org:A', relation: 'org', object: 'Workspace:ws1' });
 engine2.addTuple({ subject: 'Workspace:ws1', relation: 'workspace', object: 'Module:m1' });
-total = 0; min = Infinity; max = 0;
+total = 0;
+min = Infinity;
+max = 0;
 // Warmup
 engine2.can('User:1', 'manage', 'Module:m1');
 for (let i = 0; i < 10000; i++) {
@@ -71,12 +75,14 @@ for (let orgId = 0; orgId < 100; orgId++) {
     engine3.addTuple({ subject: `User:${orgId}_${u}`, relation: 'admin', object: org });
   }
   const ws = `Workspace:${orgId}`;
-  engine3.addTuple({ subject: org, relation: 'org', object: ws }); 
+  engine3.addTuple({ subject: org, relation: 'org', object: ws });
   for (let m = 0; m < 10; m++) {
     engine3.addTuple({ subject: ws, relation: 'workspace', object: `Module:${orgId}_${m}` });
   }
 }
-total = 0; min = Infinity; max = 0;
+total = 0;
+min = Infinity;
+max = 0;
 for (let i = 0; i < 1000; i++) {
   const targetOrg = Math.floor(Math.random() * 100);
   const targetModule = Math.floor(Math.random() * 10);
@@ -91,8 +97,10 @@ for (let i = 0; i < 1000; i++) {
 assert('Dense graph (1k calls)', total / 1000, 1, min, max);
 
 // 4. Benchmark 4: Snapshot compilation
-total = 0; min = Infinity; max = 0;
-for (let i = 0; i < 100; i++) { 
+total = 0;
+min = Infinity;
+max = 0;
+for (let i = 0; i < 100; i++) {
   const start = performance.now();
   createZanzoSnapshot(engine3, 'User:50_2');
   const dur = performance.now() - start;
@@ -100,7 +108,7 @@ for (let i = 0; i < 100; i++) {
   if (dur < min) min = dur;
   if (dur > max) max = dur;
 }
-assert('Snapshot compilation (100 calls)', total / 100, 50, min, max); 
+assert('Snapshot compilation (100 calls)', total / 100, 50, min, max);
 
 // 5. Benchmark 5: ZanzoClient lookup
 const snapshotRecord: Record<string, string[]> = {};
@@ -108,7 +116,9 @@ for (let i = 0; i < 500; i++) {
   snapshotRecord[`Resource:${i}`] = ['create', 'read', 'update', 'delete', 'share'];
 }
 const client = new ZanzoClient(snapshotRecord);
-total = 0; min = Infinity; max = 0;
+total = 0;
+min = Infinity;
+max = 0;
 for (let i = 0; i < 100000; i++) {
   const targetId = Math.floor(Math.random() * 500);
   const start = performance.now();
@@ -122,7 +132,7 @@ assert('ZanzoClient lookup (100k calls)', total / 100000, 0.001, min, max);
 
 console.log('Zanzo Benchmarks');
 console.log('────────────────────────────────────────');
-results.forEach(r => console.log(r));
+results.forEach((r) => console.log(r));
 console.log('────────────────────────────────────────');
 console.log(`Results: ${passCount}/5 PASS`);
 if (passCount < 5) process.exit(1);

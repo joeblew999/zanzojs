@@ -21,4 +21,3 @@ export {
   RevokeBuilder,
   RevokeFromBuilder,
 } from './fluent/index';
-

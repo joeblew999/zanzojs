@@ -29,7 +29,7 @@ export type ExtractCapabilityActions<TExtensions> = TExtensions extends ZanzoExt
 /**
  * Fluent builder for declaring frontend capabilities on entity instances.
  * Stores mappings that are useful for UI visibility and sync to the backend.
- * 
+ *
  * Capabilities are normally stored under a "Capability" resource namespace for uniqueness.
  */
 export class ZanzoExtension<TCaps extends string = never> {
@@ -46,14 +46,14 @@ export class ZanzoExtension<TCaps extends string = never> {
     if (!instance || typeof instance !== 'string') {
       throw new ZanzoError(
         ZanzoErrorCode.INVALID_INPUT,
-        `[Zanzo] Invalid entity instance input. Must be a non-empty string.`
+        `[Zanzo] Invalid entity instance input. Must be a non-empty string.`,
       );
     }
     const parts = instance.split(':');
     if (parts.length !== 2 || parts[0] === '' || parts[1] === '') {
       throw new ZanzoError(
         ZanzoErrorCode.INVALID_ENTITY_REF,
-        `[Zanzo] Invalid entity instance: "${instance}" must follow the "Type:Id" format.`
+        `[Zanzo] Invalid entity instance: "${instance}" must follow the "Type:Id" format.`,
       );
     }
   }
@@ -61,23 +61,23 @@ export class ZanzoExtension<TCaps extends string = never> {
   /**
    * Declares a list of capabilities for a specific entity instance.
    * Duplicate capabilities are automatically removed.
-   * 
+   *
    * @param instance The entity instance, e.g. 'Module:ventas'
    * @param capabilities An array of string capabilities, e.g. ['export_csv']
    * @returns A new detached ZanzoExtension carrying the combined capabilities type definition.
    */
   public capability<TCapString extends string>(
     instance: string,
-    capabilities: TCapString[]
+    capabilities: TCapString[],
   ): ZanzoExtension<TCaps | TCapString> {
     this.validateInstance(instance);
 
     const existing = this.map.get(instance) || [];
     const combined = Array.from(new Set([...existing, ...capabilities]));
-    
+
     const newMap = new Map(this.map);
     newMap.set(instance, combined);
-    
+
     return new ZanzoExtension<TCaps | TCapString>(newMap);
   }
 
@@ -99,7 +99,7 @@ export class ZanzoExtension<TCaps extends string = never> {
 
   /**
    * Generates relation tuples ready to be synchronized with the DB or loaded into ZanzoEngine.
-   * 
+   *
    * @param relation The base relation mapping the subject to the capability. e.g. 'module'
    * @returns Array of RelationTuple objects linking instance -> relation -> Capability:action
    */

@@ -54,7 +54,7 @@ import { ZanzoError, ZanzoErrorCode } from '../errors';
  */
 export type FetchChildrenCallback = (
   parentObject: string,
-  relationToChildren: string
+  relationToChildren: string,
 ) => Promise<string[]> | string[];
 
 export interface ExpansionContext {
@@ -76,18 +76,18 @@ export interface ExpansionContext {
    * Execution mode for transitive derivations.
    * - 'eager' (default): Synchronously waits and resolves all derivations before returning.
    * - 'deferred': Immediately returns an object with `executePending` allowing the expansion queue
-   *   to be processed asynchronously in the background. 
-   * 
+   *   to be processed asynchronously in the background.
+   *
    * **Inconsistency Window Warning:**
-   * In 'deferred' mode, there is an inconsistency window between the insertion of `baseTuple` 
-   * and the final resolution of `executePending()` where transitive `can()` checks 
+   * In 'deferred' mode, there is an inconsistency window between the insertion of `baseTuple`
+   * and the final resolution of `executePending()` where transitive `can()` checks
    * that depend on this node might return false.
-   * 
+   *
    * **AbortSignal Semantics:**
-   * Aborting via AbortSignal rejects this promise immediately, but if fetchChildren is already 
-   * in-flight, it will continue running until it resolves or the underlying connection times out. 
+   * Aborting via AbortSignal rejects this promise immediately, but if fetchChildren is already
+   * in-flight, it will continue running until it resolves or the underlying connection times out.
    * The AbortSignal does not cancel in-flight I/O.
-   * 
+   *
    * @default 'eager'
    */
   mode?: 'eager' | 'deferred';
@@ -121,15 +121,15 @@ export interface DeferredExpansion {
  * Returns `[]` if there are no derivations.
  */
 export async function materializeDerivedTuples(
-  ctx: ExpansionContext & { mode: 'deferred' }
+  ctx: ExpansionContext & { mode: 'deferred' },
 ): Promise<DeferredExpansion>;
 
 export async function materializeDerivedTuples(
-  ctx: ExpansionContext & { mode?: 'eager' }
+  ctx: ExpansionContext & { mode?: 'eager' },
 ): Promise<RelationTuple[]>;
 
 export async function materializeDerivedTuples(
-  ctx: ExpansionContext
+  ctx: ExpansionContext,
 ): Promise<RelationTuple[] | DeferredExpansion> {
   const { schema, newTuple, fetchChildren, maxExpansionSize = 500, mode = 'eager', signal } = ctx;
 
@@ -140,7 +140,7 @@ export async function materializeDerivedTuples(
         if (signal?.aborted) {
           throw new ZanzoError(
             ZanzoErrorCode.EXPANSION_ABORTED,
-            `[Zanzo] Tuple expansion was aborted before execution started.`
+            `[Zanzo] Tuple expansion was aborted before execution started.`,
           );
         }
 
@@ -149,11 +149,13 @@ export async function materializeDerivedTuples(
           newTuple,
           fetchChildren,
           maxExpansionSize,
-        ).then(walkResults => walkResults.map(r => ({
-          subject: r.subject,
-          relation: r.relation,
-          object: r.object,
-        })));
+        ).then((walkResults) =>
+          walkResults.map((r) => ({
+            subject: r.subject,
+            relation: r.relation,
+            object: r.object,
+          })),
+        );
 
         if (!signal) {
           return expansionPromise;
@@ -161,10 +163,12 @@ export async function materializeDerivedTuples(
 
         return new Promise((resolve, reject) => {
           const onAbort = () => {
-            reject(new ZanzoError(
-              ZanzoErrorCode.EXPANSION_ABORTED,
-              `[Zanzo] Tuple expansion was aborted during execution.`
-            ));
+            reject(
+              new ZanzoError(
+                ZanzoErrorCode.EXPANSION_ABORTED,
+                `[Zanzo] Tuple expansion was aborted during execution.`,
+              ),
+            );
           };
           signal.addEventListener('abort', onAbort);
 
@@ -176,21 +180,16 @@ export async function materializeDerivedTuples(
             (err) => {
               signal.removeEventListener('abort', onAbort);
               reject(err);
-            }
+            },
           );
         });
-      }
+      },
     };
   }
 
-  const walkResults = await _walkExpansionGraph(
-    schema,
-    newTuple,
-    fetchChildren,
-    maxExpansionSize,
-  );
+  const walkResults = await _walkExpansionGraph(schema, newTuple, fetchChildren, maxExpansionSize);
 
-  return walkResults.map(r => ({
+  return walkResults.map((r) => ({
     subject: r.subject,
     relation: r.relation,
     object: r.object,
@@ -272,8 +271,7 @@ export function deduplicateTuples(tuples: RelationTuple[]): RelationTuple[] {
  * ```
  */
 export function buildBulkDeleteCondition(
-  tuples: RelationTuple[]
+  tuples: RelationTuple[],
 ): [subject: string, relation: string, object: string][] {
-  return tuples.map(t => [t.subject, t.relation, t.object]);
+  return tuples.map((t) => [t.subject, t.relation, t.object]);
 }
-

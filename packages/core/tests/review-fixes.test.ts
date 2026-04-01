@@ -31,21 +31,30 @@ describe('Fix 1 — Pipe character rejection in validateInput', () => {
     const engine = new ZanzoEngine(schema);
     engine.grant('viewer').to('User:alice').on('Document:doc1');
     expect(() => {
-      engine.for('User:alice').can('read').on('Document:pipe|doc' as any);
+      engine
+        .for('User:alice')
+        .can('read')
+        .on('Document:pipe|doc' as any);
     }).toThrow(/reserved as an internal separator/);
   });
 
   it('rejects relation containing | character in grant()', () => {
     const engine = new ZanzoEngine(schema);
     expect(() => {
-      engine.grant('view|er' as any).to('User:alice').on('Document:doc1');
+      engine
+        .grant('view|er' as any)
+        .to('User:alice')
+        .on('Document:doc1');
     }).toThrow(/reserved as an internal separator/);
   });
 
   it('rejects subject containing | character in grant().to()', () => {
     const engine = new ZanzoEngine(schema);
     expect(() => {
-      engine.grant('viewer').to('User:a|b' as any).on('Document:doc1');
+      engine
+        .grant('viewer')
+        .to('User:a|b' as any)
+        .on('Document:doc1');
     }).toThrow(/reserved as an internal separator/);
   });
 
@@ -96,12 +105,11 @@ describe('Fix 2 — Diamond graph expansion (no false CYCLE_DETECTED)', () => {
       .build();
 
     // Document:shared is child of both Workspace:ws1 and Team:team1
-    const fetchChildren = vi.fn()
-      .mockImplementation(async (parentObj: string, relName: string) => {
-        if (relName === 'workspace') return ['Document:shared', 'Document:only-ws'];
-        if (relName === 'team') return ['Document:shared', 'Document:only-team'];
-        return [];
-      });
+    const fetchChildren = vi.fn().mockImplementation(async (parentObj: string, relName: string) => {
+      if (relName === 'workspace') return ['Document:shared', 'Document:only-ws'];
+      if (relName === 'team') return ['Document:shared', 'Document:only-team'];
+      return [];
+    });
 
     // Expanding admin tuple for Workspace:ws1
     const wsResults = await materializeDerivedTuples({
@@ -112,8 +120,8 @@ describe('Fix 2 — Diamond graph expansion (no false CYCLE_DETECTED)', () => {
 
     // Should produce derived tuples for workspace.admin on both docs WITHOUT throwing
     expect(wsResults.length).toBeGreaterThanOrEqual(2);
-    expect(wsResults.some(r => r.object === 'Document:shared')).toBe(true);
-    expect(wsResults.some(r => r.object === 'Document:only-ws')).toBe(true);
+    expect(wsResults.some((r) => r.object === 'Document:shared')).toBe(true);
+    expect(wsResults.some((r) => r.object === 'Document:only-ws')).toBe(true);
   });
 
   it('processes equal-relation diamond graphs successfully without throwing CYCLE_DETECTED', async () => {
@@ -130,23 +138,22 @@ describe('Fix 2 — Diamond graph expansion (no false CYCLE_DETECTED)', () => {
 
     // Equal-relation diamond graph: A -> X, Y. X,Y -> B
     // Folder:B is revisited via the exact same derived relation (parent.parent.viewer)
-    const cyclicFetch = vi.fn()
-      .mockImplementation(async (parentObj: string) => {
-        if (parentObj === 'Folder:A') return ['Folder:X', 'Folder:Y'];
-        if (parentObj === 'Folder:X') return ['Folder:B'];
-        if (parentObj === 'Folder:Y') return ['Folder:B'];
-        return [];
-      });
+    const cyclicFetch = vi.fn().mockImplementation(async (parentObj: string) => {
+      if (parentObj === 'Folder:A') return ['Folder:X', 'Folder:Y'];
+      if (parentObj === 'Folder:X') return ['Folder:B'];
+      if (parentObj === 'Folder:Y') return ['Folder:B'];
+      return [];
+    });
 
     const results = await materializeDerivedTuples({
       schema,
       newTuple: { subject: 'User:alice', relation: 'viewer', object: 'Folder:A' },
       fetchChildren: cyclicFetch,
     });
-    
+
     // Engine should deduplicate Folder:B and succeed
     expect(results.length).toBeGreaterThan(0);
-    expect(results.filter(r => r.object === 'Folder:B').length).toBe(1);
+    expect(results.filter((r) => r.object === 'Folder:B').length).toBe(1);
   });
 
   it('detects a TRUE circular reference (A -> B -> A) via ancestry tracking', async () => {
@@ -162,18 +169,19 @@ describe('Fix 2 — Diamond graph expansion (no false CYCLE_DETECTED)', () => {
       .build();
 
     // True cycle: A -> B -> A
-    const cyclicFetch = vi.fn()
-      .mockImplementation(async (parentObj: string) => {
-        if (parentObj === 'Folder:A') return ['Folder:B'];
-        if (parentObj === 'Folder:B') return ['Folder:A'];
-        return [];
-      });
+    const cyclicFetch = vi.fn().mockImplementation(async (parentObj: string) => {
+      if (parentObj === 'Folder:A') return ['Folder:B'];
+      if (parentObj === 'Folder:B') return ['Folder:A'];
+      return [];
+    });
 
-    await expect(materializeDerivedTuples({
-      schema: cyclicSchema,
-      newTuple: { subject: 'User:alice', relation: 'viewer', object: 'Folder:A' },
-      fetchChildren: cyclicFetch,
-    })).rejects.toThrow(/Circular reference detected/);
+    await expect(
+      materializeDerivedTuples({
+        schema: cyclicSchema,
+        newTuple: { subject: 'User:alice', relation: 'viewer', object: 'Folder:A' },
+        fetchChildren: cyclicFetch,
+      }),
+    ).rejects.toThrow(/Circular reference detected/);
   });
 });
 
@@ -251,18 +259,18 @@ describe('Fix 3 — evaluateAllActions cache integration', () => {
     engine.grant('owner').to('User:alice').on('Document:doc1');
 
     // First batch check populates cache
-    const results1 = engine.for('User:alice').canBatch([
-      { action: 'write', resource: 'Document:doc1' },
-    ]);
+    const results1 = engine
+      .for('User:alice')
+      .canBatch([{ action: 'write', resource: 'Document:doc1' }]);
     expect(results1.get('write:Document:doc1')).toBe(true);
 
     // Revoke owner — this should invalidate cache
     engine.revoke('owner').from('User:alice').on('Document:doc1');
 
     // Second batch check should reflect the revocation
-    const results2 = engine.for('User:alice').canBatch([
-      { action: 'write', resource: 'Document:doc1' },
-    ]);
+    const results2 = engine
+      .for('User:alice')
+      .canBatch([{ action: 'write', resource: 'Document:doc1' }]);
     expect(results2.get('write:Document:doc1')).toBe(false);
   });
 });
@@ -305,7 +313,7 @@ describe('Fix 4 — until() atomic operation (no race condition)', () => {
     // Set past expiration — should deny access
     engine.grant('viewer').to('User:alice').on('Document:doc1').until(pastDate);
     // NOTE: until() updates an already-inserted tuple atomically.
-    // But since the tuple was already added by the .on() call, 
+    // But since the tuple was already added by the .on() call,
     // the grant().to().on() adds a NEW tuple first, then until() updates it.
     // After until() with past date, can() should detect expiration.
     expect(engine.for('User:alice').can('read').on('Document:doc1')).toBe(false);
@@ -316,7 +324,7 @@ describe('Fix 4 — until() atomic operation (no race condition)', () => {
     engine.enableCache({ ttlMs: 10_000 });
 
     engine.grant('viewer').to('User:alice').on('Document:doc1');
-    
+
     // Populate cache
     expect(engine.for('User:alice').can('read').on('Document:doc1')).toBe(true);
     const sizeBefore = (engine as any).cache.size;
@@ -353,25 +361,25 @@ describe('Fix 5 — maxExpansionSize burst protection', () => {
     const maxSize = 5;
 
     // fetchChildren returns 20 children in a single burst
-    const fetchChildren = vi.fn().mockResolvedValue(
-      Array.from({ length: 20 }, (_, i) => `Document:burst-${i}`)
-    );
+    const fetchChildren = vi
+      .fn()
+      .mockResolvedValue(Array.from({ length: 20 }, (_, i) => `Document:burst-${i}`));
 
-    await expect(materializeDerivedTuples({
-      schema,
-      newTuple: { subject: 'User:alice', relation: 'owner', object: 'Folder:A' },
-      fetchChildren,
-      maxExpansionSize: maxSize,
-    })).rejects.toThrow(/exceeded maximum size of 5/);
+    await expect(
+      materializeDerivedTuples({
+        schema,
+        newTuple: { subject: 'User:alice', relation: 'owner', object: 'Folder:A' },
+        fetchChildren,
+        maxExpansionSize: maxSize,
+      }),
+    ).rejects.toThrow(/exceeded maximum size of 5/);
   });
 
   it('allows expansion exactly at maxExpansionSize', async () => {
     const maxSize = 3;
 
     // fetchChildren returns exactly 3 children
-    const fetchChildren = vi.fn().mockResolvedValue(
-      ['Document:1', 'Document:2', 'Document:3']
-    );
+    const fetchChildren = vi.fn().mockResolvedValue(['Document:1', 'Document:2', 'Document:3']);
 
     const results = await materializeDerivedTuples({
       schema,
@@ -387,15 +395,17 @@ describe('Fix 5 — maxExpansionSize burst protection', () => {
     const maxSize = 3;
 
     // fetchChildren returns 4 children (one more than max)
-    const fetchChildren = vi.fn().mockResolvedValue(
-      ['Document:1', 'Document:2', 'Document:3', 'Document:4']
-    );
+    const fetchChildren = vi
+      .fn()
+      .mockResolvedValue(['Document:1', 'Document:2', 'Document:3', 'Document:4']);
 
-    await expect(materializeDerivedTuples({
-      schema,
-      newTuple: { subject: 'User:alice', relation: 'owner', object: 'Folder:A' },
-      fetchChildren,
-      maxExpansionSize: maxSize,
-    })).rejects.toThrow(/exceeded maximum size of 3/);
+    await expect(
+      materializeDerivedTuples({
+        schema,
+        newTuple: { subject: 'User:alice', relation: 'owner', object: 'Folder:A' },
+        fetchChildren,
+        maxExpansionSize: maxSize,
+      }),
+    ).rejects.toThrow(/exceeded maximum size of 3/);
   });
 });

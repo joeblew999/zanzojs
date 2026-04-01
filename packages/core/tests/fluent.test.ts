@@ -69,18 +69,18 @@ describe('Fluent API', () => {
 
     expect(results).toHaveLength(2);
 
-    const doc1 = results.find(r => r.object === 'Document:doc1');
+    const doc1 = results.find((r) => r.object === 'Document:doc1');
     expect(doc1).toBeDefined();
     expect(doc1!.actions).toContain('read');
     expect(doc1!.actions).toContain('write');
 
-    const doc2 = results.find(r => r.object === 'Document:doc2');
+    const doc2 = results.find((r) => r.object === 'Document:doc2');
     expect(doc2).toBeDefined();
     expect(doc2!.actions).toContain('read');
     expect(doc2!.actions).not.toContain('write');
 
     // doc3 belongs to bob, not alice
-    const doc3 = results.find(r => r.object === 'Document:doc3');
+    const doc3 = results.find((r) => r.object === 'Document:doc3');
     expect(doc3).toBeUndefined();
   });
 });
@@ -133,27 +133,62 @@ describe('Field-Level Granularity', () => {
     engine.grant('fieldEditor').to('User:alice').on('Review:cert1#strengths');
 
     // Field permission should work
-    expect(engine.for('User:alice').can('edit').on('Review:cert1#strengths' as any)).toBe(true);
+    expect(
+      engine
+        .for('User:alice')
+        .can('edit')
+        .on('Review:cert1#strengths' as any),
+    ).toBe(true);
     // Should NOT inherit to the parent object
-    expect(engine.for('User:alice').can('edit').on('Review:cert1' as any)).toBe(false);
+    expect(
+      engine
+        .for('User:alice')
+        .can('edit')
+        .on('Review:cert1' as any),
+    ).toBe(false);
   });
 
   it('permission on Review:cert1 does NOT inherit to Review:cert1#strengths', () => {
     const engine = new ZanzoEngine(schema);
     engine.grant('fieldEditor').to('User:alice').on('Review:cert1');
 
-    expect(engine.for('User:alice').can('edit').on('Review:cert1' as any)).toBe(true);
+    expect(
+      engine
+        .for('User:alice')
+        .can('edit')
+        .on('Review:cert1' as any),
+    ).toBe(true);
     // Field-level should be independent
-    expect(engine.for('User:alice').can('edit').on('Review:cert1#strengths' as any)).toBe(false);
+    expect(
+      engine
+        .for('User:alice')
+        .can('edit')
+        .on('Review:cert1#strengths' as any),
+    ).toBe(false);
   });
 
   it('exact field-level check works correctly', () => {
     const engine = new ZanzoEngine(schema);
     engine.grant('reviewer').to('User:bob').on('Review:cert1#weaknesses');
 
-    expect(engine.for('User:bob').can('read').on('Review:cert1#weaknesses' as any)).toBe(true);
-    expect(engine.for('User:bob').can('read').on('Review:cert1#strengths' as any)).toBe(false);
-    expect(engine.for('User:bob').can('read').on('Review:cert1' as any)).toBe(false);
+    expect(
+      engine
+        .for('User:bob')
+        .can('read')
+        .on('Review:cert1#weaknesses' as any),
+    ).toBe(true);
+    expect(
+      engine
+        .for('User:bob')
+        .can('read')
+        .on('Review:cert1#strengths' as any),
+    ).toBe(false);
+    expect(
+      engine
+        .for('User:bob')
+        .can('read')
+        .on('Review:cert1' as any),
+    ).toBe(false);
   });
 
   it('FIELD_SEPARATOR constant is exported as "#"', () => {

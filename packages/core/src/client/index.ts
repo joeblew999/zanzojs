@@ -27,7 +27,7 @@ export class ZanzoClient {
       Object.entries(compiledPermissions).map(([key, actions]) => [
         key,
         new Set(Array.isArray(actions) ? actions : []),
-      ])
+      ]),
     );
   }
 
@@ -49,12 +49,12 @@ export class ZanzoClient {
 
   /**
    * Returns all accessible objects of the given entity type with their allowed actions.
-   * 
+   *
    * **Complexity: O(n)** where n is the number of unique resources in the snapshot.
    * Unlike can() which is O(1), this method iterates the full snapshot.
    * For large snapshots (1000+ resources), use this sparingly — prefer can()
    * for per-resource checks in render loops.
-   * 
+   *
    * @example
    * const docs = client.listAccessible('Document')
    * // → [{ object: 'Document:doc1', actions: ['read', 'write'] }]

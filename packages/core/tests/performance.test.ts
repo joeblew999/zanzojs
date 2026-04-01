@@ -106,7 +106,7 @@ describe('PermissionCache (enableCache / disableCache)', () => {
 
     // Revoke but don't invalidate (simulate TTL behavior)
     // Wait for TTL to expire
-    await new Promise(resolve => setTimeout(resolve, 60));
+    await new Promise((resolve) => setTimeout(resolve, 60));
 
     // Cache should have expired, re-evaluate
     expect(engine.for('User:alice').can('read').on('Document:doc1')).toBe(true);

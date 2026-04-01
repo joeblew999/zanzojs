@@ -6,12 +6,12 @@ const schema = new ZanzoBuilder()
   .entity('Folder', {
     actions: ['read'],
     relations: { owner: 'User' },
-    permissions: { read: ['owner'] }
+    permissions: { read: ['owner'] },
   })
   .entity('Document', {
     actions: ['read'],
     relations: { folder: 'Folder' },
-    permissions: { read: ['folder.owner'] }
+    permissions: { read: ['folder.owner'] },
   })
   .build();
 
@@ -22,14 +22,14 @@ describe('Deferred Tuple Expansion', () => {
     const tuples = await materializeDerivedTuples({
       schema,
       newTuple: { subject: 'User:alice', relation: 'owner', object: 'Folder:A' },
-      fetchChildren
+      fetchChildren,
     });
 
     expect(fetchChildren).toHaveBeenCalled();
     expect(tuples).toHaveLength(2);
     expect(tuples).toEqual([
       { subject: 'User:alice', relation: 'folder.owner', object: 'Document:1' },
-      { subject: 'User:alice', relation: 'folder.owner', object: 'Document:2' }
+      { subject: 'User:alice', relation: 'folder.owner', object: 'Document:2' },
     ]);
   });
 
@@ -41,12 +41,12 @@ describe('Deferred Tuple Expansion', () => {
       schema,
       newTuple: baseTuple,
       fetchChildren,
-      mode: 'deferred'
+      mode: 'deferred',
     });
 
     // In deferred mode, the execution should NOT have started yet.
     expect(fetchChildren).not.toHaveBeenCalled();
-    
+
     // Validate returned structure
     expect(deferred).toHaveProperty('baseTuple', baseTuple);
     expect(typeof deferred.executePending).toBe('function');
@@ -58,7 +58,7 @@ describe('Deferred Tuple Expansion', () => {
     expect(derivedTuples).toHaveLength(2);
     expect(derivedTuples).toEqual([
       { subject: 'User:alice', relation: 'folder.owner', object: 'Document:1' },
-      { subject: 'User:alice', relation: 'folder.owner', object: 'Document:2' }
+      { subject: 'User:alice', relation: 'folder.owner', object: 'Document:2' },
     ]);
   });
 });

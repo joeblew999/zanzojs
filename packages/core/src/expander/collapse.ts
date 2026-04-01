@@ -45,7 +45,7 @@ export interface CollapseContext {
  *     },
  *   });
  *   const conditions = buildBulkDeleteCondition(tuplesToDelete);
- *   
+ *
  *   // IMPORTANT: Execute bulk delete + base tuple delete in one transaction.
  *   // You must filter by all three columns (subject, relation, object) to avoid accidental deletions!
  *   for (const [sub, rel, obj] of conditions) {
@@ -57,7 +57,7 @@ export interface CollapseContext {
  *       )
  *     );
  *   }
- *   
+ *
  *   await tx.delete(zanzoTuples).where(
  *     and(
  *       eq(zanzoTuples.object, baseTuple.object),
@@ -81,7 +81,7 @@ export async function removeDerivedTuples(ctx: CollapseContext): Promise<Relatio
     maxCollapseSize,
   );
 
-  return walkResults.map(r => ({
+  return walkResults.map((r) => ({
     subject: r.subject,
     relation: r.relation,
     object: r.object,

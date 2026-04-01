@@ -3,7 +3,7 @@ import { ZanzoBuilder, ZanzoEngine, createZanzoSnapshot, ZanzoClient } from '../
 
 /**
  * Audit 2: Verification of the Canonical Flow
- * 
+ *
  * This test demonstrates the recommended production lifecycle:
  * 1. Define schema once (Module level)
  * 2. Load user-specific tuples per request (DB -> Engine)
@@ -42,7 +42,7 @@ describe('ZanzoJS Canonical Flow', () => {
     // 5. Sync to Client (The snapshot is a plain JSON object)
     expect(snapshot).toEqual({
       'Document:doc1': ['read', 'write'],
-      'Document:doc2': ['read']
+      'Document:doc2': ['read'],
     });
 
     // 6. new ZanzoClient(snapshot) - This is what happens inside ZanzoProvider

@@ -32,7 +32,7 @@ export async function _walkExpansionGraph(
 ): Promise<WalkResult[]> {
   const results: WalkResult[] = [];
   const processedRelations = new Set<string>();
-  
+
   // Track globally visited (relation, object) pairs to deduplicate diamond graphs
   // and avoid redundant DB queries. We do NOT throw when hitting this — we just skip.
   const visitedObjects = new Set<string>();
@@ -81,7 +81,10 @@ export async function _walkExpansionGraph(
           const parts = path.split(RELATION_PATH_SEPARATOR);
           if (parts.length >= 2) {
             for (const relName of matchingRelations) {
-              if (parts[0] === relName && parts.slice(1).join(RELATION_PATH_SEPARATOR) === currentTuple.relation) {
+              if (
+                parts[0] === relName &&
+                parts.slice(1).join(RELATION_PATH_SEPARATOR) === currentTuple.relation
+              ) {
                 const derivedRelation = `${relName}${RELATION_PATH_SEPARATOR}${currentTuple.relation}`;
 
                 const trackingSignature = `${currentTuple.object}|${derivedRelation}`;
@@ -97,9 +100,9 @@ export async function _walkExpansionGraph(
                         throw new ZanzoError(
                           ZanzoErrorCode.CYCLE_DETECTED,
                           `[Zanzo] Circular reference detected during tuple expansion: ` +
-                          `"${child}" appears in its own ancestry chain via relation "${derivedRelation}". ` +
-                          `Path: "${initialTuple.object}" → ... → "${currentTuple.object}" → "${child}". ` +
-                          `Review your schema and data for circular entity relationships.`
+                            `"${child}" appears in its own ancestry chain via relation "${derivedRelation}". ` +
+                            `Path: "${initialTuple.object}" → ... → "${currentTuple.object}" → "${child}". ` +
+                            `Review your schema and data for circular entity relationships.`,
                         );
                       }
 
@@ -124,7 +127,7 @@ export async function _walkExpansionGraph(
                         throw new ZanzoError(
                           ZanzoErrorCode.EXPANSION_LIMIT,
                           `[Zanzo] Security Exception: Tuple expansion exceeded maximum size of ${maxSize}. ` +
-                          `Possible cycle in schema or data. Configure maxExpansionSize/maxCollapseSize to increase the limit.`
+                            `Possible cycle in schema or data. Configure maxExpansionSize/maxCollapseSize to increase the limit.`,
                         );
                       }
 

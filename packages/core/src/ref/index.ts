@@ -46,7 +46,7 @@ export function parseEntityRef(raw: string): EntityRef {
     throw new ZanzoError(
       ZanzoErrorCode.INVALID_ENTITY_REF,
       `[Zanzo] Invalid EntityRef: received ${raw === '' ? 'empty string' : String(raw)}. ` +
-      `Expected a non-empty string in "Type:ID" format.`
+        `Expected a non-empty string in "Type:ID" format.`,
     );
   }
 
@@ -54,7 +54,7 @@ export function parseEntityRef(raw: string): EntityRef {
     throw new ZanzoError(
       ZanzoErrorCode.INVALID_ENTITY_REF,
       `[Zanzo] Invalid EntityRef: input exceeds 255 characters (got ${raw.length}). ` +
-      `Entity references must be under 255 characters.`
+        `Entity references must be under 255 characters.`,
     );
   }
 
@@ -62,7 +62,7 @@ export function parseEntityRef(raw: string): EntityRef {
     throw new ZanzoError(
       ZanzoErrorCode.INVALID_ENTITY_REF,
       `[Zanzo] Invalid EntityRef: input contains illegal unprintable control characters. ` +
-      `Sanitize the input before creating an EntityRef.`
+        `Sanitize the input before creating an EntityRef.`,
     );
   }
 
@@ -72,7 +72,7 @@ export function parseEntityRef(raw: string): EntityRef {
     throw new ZanzoError(
       ZanzoErrorCode.INVALID_ENTITY_REF,
       `[Zanzo] Invalid EntityRef: "${raw}" does not contain a '${ENTITY_REF_SEPARATOR}' separator. ` +
-      `Expected format is "Type:ID" (e.g. "User:123").`
+        `Expected format is "Type:ID" (e.g. "User:123").`,
     );
   }
 
@@ -81,7 +81,7 @@ export function parseEntityRef(raw: string): EntityRef {
     throw new ZanzoError(
       ZanzoErrorCode.INVALID_ENTITY_REF,
       `[Zanzo] Invalid EntityRef: "${raw}" contains multiple '${ENTITY_REF_SEPARATOR}' separators. ` +
-      `Expected exactly one separator in "Type:ID" format.`
+        `Expected exactly one separator in "Type:ID" format.`,
     );
   }
 
@@ -92,7 +92,7 @@ export function parseEntityRef(raw: string): EntityRef {
     throw new ZanzoError(
       ZanzoErrorCode.INVALID_ENTITY_REF,
       `[Zanzo] Invalid EntityRef: "${raw}" has an empty type segment. ` +
-      `The type before '${ENTITY_REF_SEPARATOR}' must be non-empty (e.g. "User:123").`
+        `The type before '${ENTITY_REF_SEPARATOR}' must be non-empty (e.g. "User:123").`,
     );
   }
 
@@ -100,7 +100,7 @@ export function parseEntityRef(raw: string): EntityRef {
     throw new ZanzoError(
       ZanzoErrorCode.INVALID_ENTITY_REF,
       `[Zanzo] Invalid EntityRef: "${raw}" has an empty id segment. ` +
-      `The id after '${ENTITY_REF_SEPARATOR}' must be non-empty (e.g. "User:123").`
+        `The id after '${ENTITY_REF_SEPARATOR}' must be non-empty (e.g. "User:123").`,
     );
   }
 

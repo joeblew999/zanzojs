@@ -11,7 +11,7 @@ describe('Zanzo Core Security Audit', () => {
       .entity('Node', {
         actions: ['read'],
         relations: { parent: 'Node', owner: 'User' },
-        permissions: { read: ['owner', 'parent.owner'] }
+        permissions: { read: ['owner', 'parent.owner'] },
       })
       .build();
 
@@ -33,15 +33,15 @@ describe('Zanzo Core Security Audit', () => {
 
   it('should enforce Max Depth Threshold (50) and throw a controlled Security Exception on artificially deep nested chains', () => {
     // Re-create the checkRelationsRecursive max depth exploit loop dynamically
-    const fakeRoute = new Array(51).fill('parent').map(p => [p]);
-    
+    const fakeRoute = new Array(51).fill('parent').map((p) => [p]);
+
     // Call the internal recursive explicitly bypassing the entry limit just for validation coverage
     // Actually wait, let's just trigger it logically since we have 50 layers deeply linked:
     const nodes = Array.from({ length: 55 }, (_, i) => `Node:${i}`);
     for (let i = 0; i < 52; i++) {
-       engine.addTuple({ subject: nodes[i+1], relation: 'parent', object: nodes[i] });
+      engine.addTuple({ subject: nodes[i + 1], relation: 'parent', object: nodes[i] });
     }
-    
+
     // Now User:99 owns Node:52
     engine.addTuple({ subject: 'User:99', relation: 'owner', object: nodes[52] });
 
@@ -51,18 +51,18 @@ describe('Zanzo Core Security Audit', () => {
     // To trigger depth, we simulate the internal method directly or build a massive linear explicit mock graph if public.
     // Let's use internal accessor just to check the depth boundary:
     expect(() => {
-       (engine as any).checkRelationsRecursive('User:99', fakeRoute, 'Node:0', new Set(), 51);
+      (engine as any).checkRelationsRecursive('User:99', fakeRoute, 'Node:0', new Set(), 51);
     }).toThrow(/Security Exception: Maximum relationship depth of 50 exceeded/);
   });
-  
+
   it('should immediately intercept poisoning attacks (Null byte injections or monstrous payloads)', () => {
-    const maliciousActor = "User:Inject\x00"; // Null byte control char
-    const overSizedActor = "a".repeat(256);
-    
-    expect(() => engine.can(maliciousActor, 'read', 'Node:A'))
-      .toThrow(/unprintable control characters/);
-      
-    expect(() => engine.can(overSizedActor, 'read', 'Node:A'))
-      .toThrow(/under 255 characters/);
+    const maliciousActor = 'User:Inject\x00'; // Null byte control char
+    const overSizedActor = 'a'.repeat(256);
+
+    expect(() => engine.can(maliciousActor, 'read', 'Node:A')).toThrow(
+      /unprintable control characters/,
+    );
+
+    expect(() => engine.can(overSizedActor, 'read', 'Node:A')).toThrow(/under 255 characters/);
   });
 });

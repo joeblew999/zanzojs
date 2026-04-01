@@ -28,7 +28,7 @@ describe('Debug Trace — engine.for().check().on()', () => {
     expect(result.trace.length).toBeGreaterThan(0);
 
     // The 'owner' path should be found
-    const ownerStep = result.trace.find(s => s.path === 'owner' && s.found);
+    const ownerStep = result.trace.find((s) => s.path === 'owner' && s.found);
     expect(ownerStep).toBeDefined();
     expect(ownerStep!.target).toBe('Document:doc1');
     expect(ownerStep!.subjects).toContain('User:alice');
@@ -42,7 +42,7 @@ describe('Debug Trace — engine.for().check().on()', () => {
 
     expect(result.allowed).toBe(false);
     // The 'owner' path should show found: false
-    const ownerStep = result.trace.find(s => s.path === 'owner');
+    const ownerStep = result.trace.find((s) => s.path === 'owner');
     expect(ownerStep).toBeDefined();
     expect(ownerStep!.found).toBe(false);
   });
@@ -58,14 +58,17 @@ describe('Debug Trace — engine.for().check().on()', () => {
     expect(result.trace.length).toBeGreaterThanOrEqual(1);
 
     // Should have a trace step showing the nested resolution succeeded
-    const teamMemberStep = result.trace.find(s => s.path === 'team.member' && s.found);
+    const teamMemberStep = result.trace.find((s) => s.path === 'team.member' && s.found);
     expect(teamMemberStep).toBeDefined();
   });
 
   it('returns empty trace for unknown entity type', () => {
     const engine = new ZanzoEngine(schema);
 
-    const result = engine.for('User:alice').check('read').on('Unknown:x' as any);
+    const result = engine
+      .for('User:alice')
+      .check('read')
+      .on('Unknown:x' as any);
 
     expect(result.allowed).toBe(false);
     expect(result.trace).toEqual([]);
@@ -74,7 +77,10 @@ describe('Debug Trace — engine.for().check().on()', () => {
   it('returns empty trace for action with no permission mappings', () => {
     const engine = new ZanzoEngine(schema);
 
-    const result = engine.for('User:alice').check('delete' as any).on('Document:doc1');
+    const result = engine
+      .for('User:alice')
+      .check('delete' as any)
+      .on('Document:doc1');
 
     expect(result.allowed).toBe(false);
     expect(result.trace).toEqual([]);
@@ -88,7 +94,7 @@ describe('Debug Trace — engine.for().check().on()', () => {
     const result = engine.for('User:carol').check('read').on('Document:doc1');
 
     expect(result.allowed).toBe(false);
-    const viewerStep = result.trace.find(s => s.path === 'viewer');
+    const viewerStep = result.trace.find((s) => s.path === 'viewer');
     expect(viewerStep).toBeDefined();
     expect(viewerStep!.subjects).toContain('User:alice');
     expect(viewerStep!.subjects).toContain('User:bob');
@@ -100,17 +106,25 @@ describe('Debug Trace — engine.for().check().on()', () => {
     engine.grant('viewer').to('User:bob').on('Document:doc2');
 
     // True cases
-    expect(engine.for('User:alice').check('read').on('Document:doc1').allowed)
-      .toBe(engine.for('User:alice').can('read').on('Document:doc1'));
-    expect(engine.for('User:alice').check('write').on('Document:doc1').allowed)
-      .toBe(engine.for('User:alice').can('write').on('Document:doc1'));
-    expect(engine.for('User:bob').check('read').on('Document:doc2').allowed)
-      .toBe(engine.for('User:bob').can('read').on('Document:doc2'));
+    expect(engine.for('User:alice').check('read').on('Document:doc1').allowed).toBe(
+      engine.for('User:alice').can('read').on('Document:doc1'),
+    );
+    expect(engine.for('User:alice').check('write').on('Document:doc1').allowed).toBe(
+      engine.for('User:alice').can('write').on('Document:doc1'),
+    );
+    expect(engine.for('User:bob').check('read').on('Document:doc2').allowed).toBe(
+      engine.for('User:bob').can('read').on('Document:doc2'),
+    );
 
     // False cases
-    expect(engine.for('User:bob').check('write').on('Document:doc2').allowed)
-      .toBe(engine.for('User:bob').can('write').on('Document:doc2'));
-    expect(engine.for('User:carol').check('read').on('Document:doc1').allowed)
-      .toBe(engine.for('User:carol' as any).can('read').on('Document:doc1'));
+    expect(engine.for('User:bob').check('write').on('Document:doc2').allowed).toBe(
+      engine.for('User:bob').can('write').on('Document:doc2'),
+    );
+    expect(engine.for('User:carol').check('read').on('Document:doc1').allowed).toBe(
+      engine
+        .for('User:carol' as any)
+        .can('read')
+        .on('Document:doc1'),
+    );
   });
 });

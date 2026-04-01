@@ -55,8 +55,10 @@ export interface AccessibleResult {
  * type Names = AllSchemaEntities<typeof schema>
  * // → 'User' | 'Document' | 'Workspace'
  */
-export type AllSchemaEntities<TSchema extends Record<string, unknown>> =
-  Extract<keyof TSchema, string>;
+export type AllSchemaEntities<TSchema extends Record<string, unknown>> = Extract<
+  keyof TSchema,
+  string
+>;
 
 /**
  * Extracts the action literals for a specific entity from the schema.
@@ -102,4 +104,3 @@ export type AllSchemaRelations<TSchema extends Record<string, unknown>> = {
  */
 export type SchemaEntityRef<TSchema extends Record<string, unknown>> =
   `${AllSchemaEntities<TSchema>}:${string}`;
-

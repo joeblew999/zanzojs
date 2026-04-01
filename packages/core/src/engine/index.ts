@@ -87,7 +87,10 @@ export class ZanzoEngine<TSchema extends SchemaData> {
 
       const definedRelations = new Set(Object.keys(definition.relations));
 
-      for (const [action, paths] of Object.entries(definition.permissions) as [string, string[]][]) {
+      for (const [action, paths] of Object.entries(definition.permissions) as [
+        string,
+        string[],
+      ][]) {
         if (!Array.isArray(paths)) continue;
 
         for (const path of paths) {
@@ -98,8 +101,8 @@ export class ZanzoEngine<TSchema extends SchemaData> {
             throw new ZanzoError(
               ZanzoErrorCode.MISSING_RELATION,
               `[Zanzo] Missing relation: Entity "${entityName}" permission "${action}" references ` +
-              `relation "${firstSegment}" (in path "${path}"), but this relation is not defined ` +
-              `in the entity's relations map. Defined relations: [${[...definedRelations].join(', ')}].`
+                `relation "${firstSegment}" (in path "${path}"), but this relation is not defined ` +
+                `in the entity's relations map. Defined relations: [${[...definedRelations].join(', ')}].`,
             );
           }
         }
@@ -145,7 +148,12 @@ export class ZanzoEngine<TSchema extends SchemaData> {
    * The index stores edges as: Object -> Relation -> Subjects.
    * This means traversing the index goes from a resource to its owners/parents.
    */
-  private isReachable(start: string, target: string, depth = 0, visited = new Set<string>()): boolean {
+  private isReachable(
+    start: string,
+    target: string,
+    depth = 0,
+    visited = new Set<string>(),
+  ): boolean {
     if (start === target) return true;
     if (depth > 50) return false;
 
@@ -181,29 +189,41 @@ export class ZanzoEngine<TSchema extends SchemaData> {
     return this.index as unknown as ReadonlyMap<string, ReadonlyMap<string, ReadonlySet<string>>>;
   }
 
-  // ZANZO-REVIEW: Extraído según la especificación (validateActorInput). 
+  // ZANZO-REVIEW: Extraído según la especificación (validateActorInput).
   // Nota: hemos agrupado `resourceType` bajo su propia directriz, pero mantenemos esta abstracción idéntica
   // a cómo se extrae la validación limpia del actor tal y como solicitaste.
   // Issue #9: Unified validation — previously duplicated between actor and resource validators.
   private validateInput(input: string, label: string): void {
     if (!input || typeof input !== 'string' || input.length > 255) {
-      throw new ZanzoError(ZanzoErrorCode.INVALID_INPUT, `[Zanzo] Invalid ${label} input. Must be a non-empty string under 255 characters.`);
+      throw new ZanzoError(
+        ZanzoErrorCode.INVALID_INPUT,
+        `[Zanzo] Invalid ${label} input. Must be a non-empty string under 255 characters.`,
+      );
     }
     const controlCharsRegex = /[\x00-\x1F\x7F]/;
     if (controlCharsRegex.test(input)) {
-      throw new ZanzoError(ZanzoErrorCode.INVALID_INPUT, `[Zanzo] Security Exception: ${label} input contains illegal unprintable control characters.`);
+      throw new ZanzoError(
+        ZanzoErrorCode.INVALID_INPUT,
+        `[Zanzo] Security Exception: ${label} input contains illegal unprintable control characters.`,
+      );
     }
 
     // The pipe character is used as the internal separator for cache keys and tuple keys.
     // Allowing it in inputs would break cache key parsing in invalidate() and cause stale access.
     if (input.includes('|')) {
-      throw new ZanzoError(ZanzoErrorCode.INVALID_INPUT, `[Zanzo] Invalid ${label} input: the character '|' is reserved as an internal separator and cannot appear in identifiers.`);
+      throw new ZanzoError(
+        ZanzoErrorCode.INVALID_INPUT,
+        `[Zanzo] Invalid ${label} input: the character '|' is reserved as an internal separator and cannot appear in identifiers.`,
+      );
     }
 
     if (label === 'actor' || label === 'subject' || label === 'object' || label === 'resource') {
       const parts = input.split(':');
       if (parts.length !== 2 || parts[0] === '' || parts[1] === '') {
-        throw new ZanzoError(ZanzoErrorCode.INVALID_ENTITY_REF, `[Zanzo] Invalid ${label}: "${input}" must follow the "Type:Id" format.`);
+        throw new ZanzoError(
+          ZanzoErrorCode.INVALID_ENTITY_REF,
+          `[Zanzo] Invalid ${label}: "${input}" must follow the "Type:Id" format.`,
+        );
       }
     }
   }
@@ -217,7 +237,7 @@ export class ZanzoEngine<TSchema extends SchemaData> {
       throw new ZanzoError(
         ZanzoErrorCode.INVALID_FIELD_SEPARATOR,
         `[Zanzo] Invalid ${label}: "${input}" contains multiple '${FIELD_SEPARATOR}' separators. ` +
-        `An object identifier may contain at most one '#' for field-level granularity.`
+          `An object identifier may contain at most one '#' for field-level granularity.`,
       );
     }
   }
@@ -238,7 +258,7 @@ export class ZanzoEngine<TSchema extends SchemaData> {
 
   /**
    * Starts a fluent permission check for any actor string, bypassing schema validation.
-   * This is intended for internal use by adapters (e.g. Angular) that create synthetic actors 
+   * This is intended for internal use by adapters (e.g. Angular) that create synthetic actors
    * or use pre-filtered snapshots.
    *
    * @internal For adapter use only.
@@ -255,7 +275,9 @@ export class ZanzoEngine<TSchema extends SchemaData> {
    * engine.grant('owner').to('User:alice').on('Document:doc1')
    * engine.grant('viewer').to('User:bob').on('Document:doc1').until(new Date())
    */
-  public grant<TRelation extends AllSchemaRelations<TSchema> & string>(relation: TRelation): GrantBuilder<TSchema> {
+  public grant<TRelation extends AllSchemaRelations<TSchema> & string>(
+    relation: TRelation,
+  ): GrantBuilder<TSchema> {
     this.validateInput(relation, 'relation');
     return new GrantBuilder(this, relation);
   }
@@ -266,7 +288,9 @@ export class ZanzoEngine<TSchema extends SchemaData> {
    * @example
    * engine.revoke('owner').from('User:alice').on('Document:doc1')
    */
-  public revoke<TRelation extends AllSchemaRelations<TSchema> & string>(relation: TRelation): RevokeBuilder<TSchema> {
+  public revoke<TRelation extends AllSchemaRelations<TSchema> & string>(
+    relation: TRelation,
+  ): RevokeBuilder<TSchema> {
     this.validateInput(relation, 'relation');
     return new RevokeBuilder(this, relation);
   }
@@ -309,16 +333,24 @@ export class ZanzoEngine<TSchema extends SchemaData> {
     };
     if ('expiresAt' in tuple && tuple.expiresAt) {
       storedTuple.expiresAt = tuple.expiresAt;
-      this.expiryIndex.set(this.uniqueTupleKey(tuple.subject, tuple.relation, tuple.object), tuple.expiresAt);
+      this.expiryIndex.set(
+        this.uniqueTupleKey(tuple.subject, tuple.relation, tuple.object),
+        tuple.expiresAt,
+      );
     } else {
       this.expiryIndex.delete(this.uniqueTupleKey(tuple.subject, tuple.relation, tuple.object));
     }
 
-    this.tupleStore.set(this.uniqueTupleKey(tuple.subject, tuple.relation, tuple.object), storedTuple);
+    this.tupleStore.set(
+      this.uniqueTupleKey(tuple.subject, tuple.relation, tuple.object),
+      storedTuple,
+    );
 
     // Invalidate cache on any tuple mutation unless skipped for bulk processing
     if (!skipCacheInvalidation) {
-      this.cache?.invalidate(tuple as RelationTuple, (start, target) => this.isReachable(start, target));
+      this.cache?.invalidate(tuple as RelationTuple, (start, target) =>
+        this.isReachable(start, target),
+      );
     }
   }
 
@@ -355,10 +387,10 @@ export class ZanzoEngine<TSchema extends SchemaData> {
    */
   public load(tuples: (RelationTuple | Tuple)[]): void {
     const now = new Date();
-    // Optimization: When loading a large batch (> 50 tuples natively), bypass the selective 
-    // depth-first-search (DFS) per tuple and instead execute an instant full cache wipe at the end. 
+    // Optimization: When loading a large batch (> 50 tuples natively), bypass the selective
+    // depth-first-search (DFS) per tuple and instead execute an instant full cache wipe at the end.
     // This scales hydration logic linearly avoiding O(N * (Graph DFS)) spikes.
-    const isLargeBatch = tuples.length > 50; 
+    const isLargeBatch = tuples.length > 50;
     let loadedCount = 0;
 
     for (const tuple of tuples) {
@@ -377,7 +409,7 @@ export class ZanzoEngine<TSchema extends SchemaData> {
   /**
    * Hydrates the engine with capabilities dynamically declared on frontend components.
    * These extensions are transformed into memory tuples allowing `can()` evaluations to resolve locally.
-   * 
+   *
    * @param extensions ZanzoExtension instance containing capabilities per entity.
    * @param relation The base relation mapping the entity instance to the capability object (e.g. 'module')
    */
@@ -411,7 +443,9 @@ export class ZanzoEngine<TSchema extends SchemaData> {
     this.expiryIndex.delete(key);
 
     // Invalidate cache on any tuple mutation
-    this.cache?.invalidate(tuple as RelationTuple, (start, target) => this.isReachable(start, target));
+    this.cache?.invalidate(tuple as RelationTuple, (start, target) =>
+      this.isReachable(start, target),
+    );
   }
 
   /**
@@ -429,7 +463,9 @@ export class ZanzoEngine<TSchema extends SchemaData> {
       stored.expiresAt = expiresAt;
       this.expiryIndex.set(key, expiresAt);
       // Invalidate cache once (not twice like remove+add would)
-      this.cache?.invalidate(tuple as RelationTuple, (start, target) => this.isReachable(start, target));
+      this.cache?.invalidate(tuple as RelationTuple, (start, target) =>
+        this.isReachable(start, target),
+      );
     } else {
       // Tuple wasn't in the store yet — do a full add with expiresAt
       const tupleWithExpiry = { ...tuple, expiresAt };
@@ -450,11 +486,11 @@ export class ZanzoEngine<TSchema extends SchemaData> {
   /**
    * Removes expired tuples from the engine's in-memory index.
    * Returns the number of tuples removed.
-   * 
+   *
    * **When to use:** Only relevant for long-lived engine instances such as
    * background workers or WebSocket servers that keep a ZanzoEngine in memory
    * for extended periods.
-   * 
+   *
    * **Not needed in per-request flows:** engine.load() already skips expired
    * tuples during hydration. If you create a fresh engine per request,
    * cleanup() will always return 0.
@@ -484,7 +520,12 @@ export class ZanzoEngine<TSchema extends SchemaData> {
    * Checks if a tuple is expired.
    * @internal
    */
-  private isExpired(subject: string, relation: string, object: string, now: number = Date.now()): boolean {
+  private isExpired(
+    subject: string,
+    relation: string,
+    object: string,
+    now: number = Date.now(),
+  ): boolean {
     const expiresAt = this.expiryIndex.get(this.uniqueTupleKey(subject, relation, object));
     if (expiresAt && expiresAt.getTime() <= now) {
       this.cache?.invalidate();
@@ -516,7 +557,9 @@ export class ZanzoEngine<TSchema extends SchemaData> {
 
     // For field-level resources (e.g. Review:cert1#strengths), extract the entity type
     // from the base object before the '#'
-    const baseResource = resource.includes(FIELD_SEPARATOR) ? resource.split(FIELD_SEPARATOR)[0]! : resource;
+    const baseResource = resource.includes(FIELD_SEPARATOR)
+      ? resource.split(FIELD_SEPARATOR)[0]!
+      : resource;
     const resourceType = parseEntityRef(baseResource).type;
     const resourceSchema = this.schema[resourceType as keyof TSchema];
 
@@ -546,7 +589,7 @@ export class ZanzoEngine<TSchema extends SchemaData> {
 
       // If all actions are resolved from cache, return immediately
       if (uncachedActions.length === 0) {
-        return actions.filter(a => grantedActions.has(a));
+        return actions.filter((a) => grantedActions.has(a));
       }
     } else {
       uncachedActions.push(...actions);
@@ -577,7 +620,7 @@ export class ZanzoEngine<TSchema extends SchemaData> {
           this.cache.set(actor, action, resource, false);
         }
       }
-      return actions.filter(a => grantedActions.has(a));
+      return actions.filter((a) => grantedActions.has(a));
     }
 
     // Track which uncached actions were evaluated so we can cache denials too
@@ -586,7 +629,7 @@ export class ZanzoEngine<TSchema extends SchemaData> {
     // Evaluate each unique route once, mapping results to all associated actions
     for (const { parts, actions: routeActions } of routeMap.values()) {
       // Skip if all actions for this route are already granted
-      const allAlreadyGranted = [...routeActions].every(a => grantedActions.has(a));
+      const allAlreadyGranted = [...routeActions].every((a) => grantedActions.has(a));
       if (allAlreadyGranted) continue;
 
       // Each unique route gets a fresh visited set to avoid cross-route interference
@@ -624,7 +667,7 @@ export class ZanzoEngine<TSchema extends SchemaData> {
     }
 
     // Return in original action order to maintain deterministic output
-    return actions.filter(a => grantedActions.has(a));
+    return actions.filter((a) => grantedActions.has(a));
   }
 
   /**
@@ -647,7 +690,9 @@ export class ZanzoEngine<TSchema extends SchemaData> {
     this.validateInput(resource, 'resource');
 
     // For field-level resources, extract the entity type from the base object
-    const baseResource = resource.includes(FIELD_SEPARATOR) ? resource.split(FIELD_SEPARATOR)[0]! : resource;
+    const baseResource = resource.includes(FIELD_SEPARATOR)
+      ? resource.split(FIELD_SEPARATOR)[0]!
+      : resource;
     const resourceType = parseEntityRef(baseResource).type as TResourceName;
     const resourceSchema = this.schema[resourceType];
 
@@ -668,16 +713,28 @@ export class ZanzoEngine<TSchema extends SchemaData> {
     }
 
     // Pre-split the allowed routes to avoid running String.split repeatedly during recursion
-    const preSplitRoutes: string[][] = allowedRelationsForAction.map((route) => route.split(RELATION_PATH_SEPARATOR));
-    
+    const preSplitRoutes: string[][] = allowedRelationsForAction.map((route) =>
+      route.split(RELATION_PATH_SEPARATOR),
+    );
+
     // ZANZO-REVIEW: Decidí NO APLICAR la pre-computación de `routeKey` global solicitada en Tarea 3c.
-    // Razón: En grafos combinatorios, si un nodo se alcanza por dos ramas requiriendo "remainders" distintos, 
+    // Razón: En grafos combinatorios, si un nodo se alcanza por dos ramas requiriendo "remainders" distintos,
     // un hash global estático provocará un falso negativo en el caché `visited` y denegará permisos erróneamente.
     // (Esto causaba que stress.test.ts fallara). Mantenemos la concatenación selectiva pasada por recursión.
 
     // Call the recursive engine internal handler (use the original resource, potentially with '#')
     const now = Date.now();
-    const result = this.checkRelationsRecursive(actor, preSplitRoutes, resource, new Set<string>(), 0, '', undefined, undefined, now);
+    const result = this.checkRelationsRecursive(
+      actor,
+      preSplitRoutes,
+      resource,
+      new Set<string>(),
+      0,
+      '',
+      undefined,
+      undefined,
+      now,
+    );
 
     // Store result in cache if enabled
     this.cache?.set(actor, action as string, resource, result);
@@ -707,9 +764,12 @@ export class ZanzoEngine<TSchema extends SchemaData> {
   ): boolean {
     const timeToRun = now ?? Date.now();
     if (depth > 50) {
-      throw new ZanzoError(ZanzoErrorCode.MAX_DEPTH_EXCEEDED, `[Zanzo] Security Exception: Maximum relationship depth of 50 exceeded. Graph might contain an infinite cycle or is too heavily nested.`);
+      throw new ZanzoError(
+        ZanzoErrorCode.MAX_DEPTH_EXCEEDED,
+        `[Zanzo] Security Exception: Maximum relationship depth of 50 exceeded. Graph might contain an infinite cycle or is too heavily nested.`,
+      );
     }
-    
+
     // Memory Hotspot Optimization (GC Friendly):
     const visitedSignature = `${actor}|${currentTarget}|${parentSignature}`;
 
@@ -758,7 +818,9 @@ export class ZanzoEngine<TSchema extends SchemaData> {
 
       if (routeParts.length === 1) {
         // Direct relation base case check O(1)
-        const found = subjectsForRelation.has(actor) && !this.isExpired(actor, currentRelation, currentTarget, timeToRun);
+        const found =
+          subjectsForRelation.has(actor) &&
+          !this.isExpired(actor, currentRelation, currentTarget, timeToRun);
         if (trace && routeLabels) {
           trace.push({
             path: routeLabels[i] || currentRelation,
@@ -771,8 +833,10 @@ export class ZanzoEngine<TSchema extends SchemaData> {
       } else {
         // Inherited nested relation graph exploration
         const remainingRoute = routeParts.slice(1);
-        
-        const nextSignature = parentSignature ? parentSignature + '.' + currentRelation + `[${i}]` : currentRelation + `[${i}]`;
+
+        const nextSignature = parentSignature
+          ? parentSignature + '.' + currentRelation + `[${i}]`
+          : currentRelation + `[${i}]`;
 
         let anyFound = false;
         // Optimize: we execute branching recursively into subsets, and stop at first generic success.
@@ -790,7 +854,15 @@ export class ZanzoEngine<TSchema extends SchemaData> {
             depth + 1,
             nextSignature,
             trace,
-            routeLabels ? [routeLabels[i] ? routeLabels[i]!.split(RELATION_PATH_SEPARATOR).slice(1).join(RELATION_PATH_SEPARATOR) : remainingRoute.join('.')] : undefined,
+            routeLabels
+              ? [
+                  routeLabels[i]
+                    ? routeLabels[i]!.split(RELATION_PATH_SEPARATOR)
+                        .slice(1)
+                        .join(RELATION_PATH_SEPARATOR)
+                    : remainingRoute.join('.'),
+                ]
+              : undefined,
             timeToRun,
           );
 
@@ -828,7 +900,9 @@ export class ZanzoEngine<TSchema extends SchemaData> {
     this.validateInput(actor, 'actor');
     this.validateInput(resource, 'resource');
 
-    const baseResource = resource.includes(FIELD_SEPARATOR) ? resource.split(FIELD_SEPARATOR)[0]! : resource;
+    const baseResource = resource.includes(FIELD_SEPARATOR)
+      ? resource.split(FIELD_SEPARATOR)[0]!
+      : resource;
     const resourceType = parseEntityRef(baseResource).type;
     const resourceSchema = this.schema[resourceType];
 
@@ -844,7 +918,9 @@ export class ZanzoEngine<TSchema extends SchemaData> {
       return { allowed: false, trace };
     }
 
-    const preSplitRoutes: string[][] = allowedRelationsForAction.map((route) => route.split(RELATION_PATH_SEPARATOR));
+    const preSplitRoutes: string[][] = allowedRelationsForAction.map((route) =>
+      route.split(RELATION_PATH_SEPARATOR),
+    );
 
     const now = Date.now();
 

@@ -410,7 +410,9 @@ describe('collapseTuples — Symmetry with expandTuples', () => {
     // Sort both arrays for deterministic comparison
     const sortTuples = (arr: RelationTuple[]) =>
       [...arr].sort((a, b) =>
-        `${a.subject}|${a.relation}|${a.object}`.localeCompare(`${b.subject}|${b.relation}|${b.object}`)
+        `${a.subject}|${a.relation}|${a.object}`.localeCompare(
+          `${b.subject}|${b.relation}|${b.object}`,
+        ),
       );
 
     expect(sortTuples(collapsed)).toEqual(sortTuples(expanded));
@@ -452,7 +454,9 @@ describe('collapseTuples — Symmetry with expandTuples', () => {
 
     const sortTuples = (arr: RelationTuple[]) =>
       [...arr].sort((a, b) =>
-        `${a.subject}|${a.relation}|${a.object}`.localeCompare(`${b.subject}|${b.relation}|${b.object}`)
+        `${a.subject}|${a.relation}|${a.object}`.localeCompare(
+          `${b.subject}|${b.relation}|${b.object}`,
+        ),
       );
 
     expect(sortTuples(collapsed)).toEqual(sortTuples(expanded));

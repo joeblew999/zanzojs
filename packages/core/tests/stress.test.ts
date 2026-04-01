@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 import { ZanzoBuilder, ZanzoEngine, RelationTuple } from '../src/index';
 
 describe('Zanzo Enterprise Stress & Performance Tests', () => {
-
   it('should process a massive combinatorial graph (10,000 relations) linearly under 50ms without exceeding memory limits', () => {
     // 1. Setup a standard ReBAC Schema
     const schema = new ZanzoBuilder()
@@ -11,7 +10,7 @@ describe('Zanzo Enterprise Stress & Performance Tests', () => {
         actions: ['read'],
         relations: { parent: 'Folder', viewer: 'User' },
         // To allow infinite depth hierarchy in ReBAC pattern we bind 'viewer' to 'parent.viewer'
-        permissions: { read: ['viewer', 'parent.viewer', 'parent.parent.viewer'] }
+        permissions: { read: ['viewer', 'parent.viewer', 'parent.parent.viewer'] },
       })
       .build();
 
@@ -21,20 +20,24 @@ describe('Zanzo Enterprise Stress & Performance Tests', () => {
     // 1 Root Folder -> 100 Child Folders -> 100 Grandchildren
     // We will connect them all to simulate heavy RBAC nested loops
     const tuples: RelationTuple[] = [];
-    
+
     // Create 100 level 1 folders
     for (let i = 0; i < 100; i++) {
-       tuples.push({ subject: 'Folder:Root', relation: 'parent', object: `Folder:L1_${i}` });
-       
-       // For each level 1, create 100 level 2 folders
-       for (let j = 0; j < 100; j++) {
-         tuples.push({ subject: `Folder:L1_${i}`, relation: 'parent', object: `Folder:L2_${i}_${j}` });
-       }
+      tuples.push({ subject: 'Folder:Root', relation: 'parent', object: `Folder:L1_${i}` });
+
+      // For each level 1, create 100 level 2 folders
+      for (let j = 0; j < 100; j++) {
+        tuples.push({
+          subject: `Folder:L1_${i}`,
+          relation: 'parent',
+          object: `Folder:L2_${i}_${j}`,
+        });
+      }
     }
 
     // Assign the User to the Root folder. They should inherit access to all 10,000 descendants.
     tuples.push({ subject: 'User:EnterpriseOwner', relation: 'viewer', object: 'Folder:Root' });
-    
+
     // Pre-load memory indexes
     engine.addTuples(tuples);
     expect(engine.getIndex().size).toBeGreaterThan(10000);
@@ -60,9 +63,8 @@ describe('Zanzo Enterprise Stress & Performance Tests', () => {
     // Expectations
     expect(result).toBe(true);
     expect(timeDiff).toBeLessThan(75); // Target execution boundary (allowing margin for VM CI warmup)
-    
+
     // Make sure we aren't leaking megabytes of RAM per request
-    expect(memoryDiffMB).toBeLessThan(5); 
+    expect(memoryDiffMB).toBeLessThan(5);
   });
-  
 });

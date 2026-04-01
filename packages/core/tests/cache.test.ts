@@ -15,41 +15,41 @@ const schema = new ZanzoBuilder()
 describe('PermissionCache - Extended', () => {
   it('invalidates cache when cleanup() removes expired tuples', async () => {
     const engine = new ZanzoEngine(schema);
-    
+
     // Grant with expiration in the past
     const past = new Date(Date.now() - 1000);
     engine.grant('viewer').to('User:alice').on('Document:doc1').until(past);
-    
+
     engine.enableCache({ ttlMs: 10_000 });
-    
+
     // First call (cache miss) -> false because it is already expired in storage lookup
     // Wait, addTuple adds it, cleanup removes it.
     // If I call can() it checks isExpired()
     expect(engine.for('User:alice').can('read').on('Document:doc1')).toBe(false);
-    
+
     // Now grant it again without expiration to test cache invalidation by cleanup
     engine.grant('viewer').to('User:alice').on('Document:doc1');
     expect(engine.for('User:alice').can('read').on('Document:doc1')).toBe(true);
-    
+
     // Manually force an expired entry into the store (simulating time pass)
     // Actually engine.grant().until() and then waiting is better but slow.
     // Let's just test that cleanup() explicitly calls invalidate() if it removes something.
-    
+
     const future = new Date(Date.now() + 50);
     engine.revoke('viewer').from('User:alice').on('Document:doc1');
     engine.grant('viewer').to('User:alice').on('Document:doc1').until(future);
-    
+
     expect(engine.for('User:alice').can('read').on('Document:doc1')).toBe(true);
-    
+
     // Wait for it to expire
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
     // Calling can() now will detect expiration in isExpired() and return false (invalidating cache)
     // But we want to test that cleanup() ALSO does it.
-    
+
     const removed = engine.cleanup();
     expect(removed).toBeGreaterThan(0);
-    
+
     // After cleanup, cache should be invalidated.
     // We already have r1=true in cache from previous call.
     // If cleanup invalidated it, the next call should be fresh.
@@ -62,15 +62,15 @@ const transitiveSchema = new ZanzoBuilder()
   .entity('Workspace', {
     actions: ['read_all'],
     relations: { admin: 'User' },
-    permissions: { read_all: ['admin'] }
+    permissions: { read_all: ['admin'] },
   })
   .entity('Document', {
     actions: ['read', 'write'],
     relations: { workspace: 'Workspace' },
     permissions: {
       read: ['workspace.admin'],
-      write: ['workspace.admin']
-    }
+      write: ['workspace.admin'],
+    },
   })
   .build();
 
@@ -98,7 +98,7 @@ describe('Selective Cache Invalidation', () => {
     expect((engine as any).cache.size).toBe(1);
 
     expect(engine.for('User:1').can('read').on('Document:1')).toBe(false); // fresh eval
-    expect(engine.for('User:2').can('read').on('Document:2')).toBe(true);  // cached O(1)
+    expect(engine.for('User:2').can('read').on('Document:2')).toBe(true); // cached O(1)
   });
 
   it('invalidates child documents when parent workspace relation changes transitively', () => {
@@ -107,7 +107,7 @@ describe('Selective Cache Invalidation', () => {
 
     engine.grant('workspace').to('Workspace:A').on('Document:Child');
     engine.grant('admin').to('User:1').on('Workspace:A');
-    
+
     // Now User:1 can read Document:Child
     expect(engine.for('User:1').can('read').on('Document:Child')).toBe(true);
 
@@ -160,7 +160,7 @@ describe('Selective Cache Invalidation', () => {
     // Populate cache with 2 entries
     expect(engine.for('User:1').can('read').on('Document:1')).toBe(true);
     expect(engine.for('User:2').can('read').on('Document:2')).toBe(true);
-    
+
     // Validate cache size is larger than threshold
     expect((engine as any).cache.size).toBe(2);
 
