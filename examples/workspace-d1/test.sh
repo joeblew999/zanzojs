@@ -27,6 +27,10 @@ check() {
   fi
 }
 
+# Helpers: grant/revoke via workspace-d1 permission API
+grant()  { curl -s -X PUT    "$PERM/grant"  -H "Content-Type: application/json" -d "$1"; }
+revoke() { curl -s -X DELETE "$PERM/revoke" -H "Content-Type: application/json" -d "$1"; }
+
 echo ""
 echo "=== workspace-d1 integration tests ==="
 echo ""
@@ -38,12 +42,10 @@ echo ""
 
 echo "-- bootstrap --"
 
-R=$(curl -s -X PUT "$PERM/grant" -H "Content-Type: application/json" \
-  -d '{"subject":"User:alice","relation":"owner","type":"Directory","id":"/projects/demo"}')
+R=$(grant '{"subject":"User:alice","relation":"owner","type":"Directory","id":"/projects/demo"}')
 check "bootstrap alice projects/demo" '"granted"' "$R"
 
-R=$(curl -s -X PUT "$PERM/grant" -H "Content-Type: application/json" \
-  -d '{"subject":"User:bob","relation":"owner","type":"Directory","id":"/home/bob"}')
+R=$(grant '{"subject":"User:bob","relation":"owner","type":"Directory","id":"/home/bob"}')
 check "bootstrap bob home" '"granted"' "$R"
 
 # ── Filesystem ────────────────────────────────────────────────────────────────
@@ -74,8 +76,7 @@ R=$(curl -s "$FS/files/projects/demo/notes.txt?actor=User:bob")
 check "bob denied before share" '"error"' "$R"
 
 # Alice grants Bob viewer on the file (via permission API on workspace-d1)
-R=$(curl -s -X PUT "$PERM/grant" -H "Content-Type: application/json" \
-  -d '{"subject":"User:bob","relation":"viewer","type":"File","id":"/projects/demo/notes.txt"}')
+R=$(grant '{"subject":"User:bob","relation":"viewer","type":"File","id":"/projects/demo/notes.txt"}')
 check "alice grants bob viewer" '"granted"' "$R"
 
 # Bob can now read
@@ -261,8 +262,7 @@ R=$(curl -s "$FS/files/projects/demo/copy.txt?actor=User:alice")
 check "copied file has correct content" "original content" "$R"
 
 # Bob has viewer on original — can read src but no write on dest dir, denied
-R=$(curl -s -X PUT "$PERM/grant" -H "Content-Type: application/json" \
-  -d '{"subject":"User:bob","relation":"viewer","type":"File","id":"/projects/demo/original.txt"}')
+R=$(grant '{"subject":"User:bob","relation":"viewer","type":"File","id":"/projects/demo/original.txt"}')
 check "grant bob viewer on original.txt" '"granted"' "$R"
 
 R=$(curl -s -X POST "$FS/cp?actor=User:bob" -H "Content-Type: application/json" \
@@ -330,8 +330,7 @@ echo ""
 echo "-- generic permission API (CadModel, Drone, Project) --"
 
 # Grant Agent:claude-mcp editor on CadModel:abc123
-R=$(curl -s -X PUT "$PERM/grant" -H "Content-Type: application/json" \
-  -d '{"subject":"Agent:claude-mcp","relation":"editor","type":"CadModel","id":"abc123"}')
+R=$(grant '{"subject":"Agent:claude-mcp","relation":"editor","type":"CadModel","id":"abc123"}')
 check "grant agent editor on cadmodel" '"granted"' "$R"
 
 # Agent can execute_command (editor grants it per schema)
@@ -343,8 +342,7 @@ R=$(curl -s "$PERM/check?actor=Agent:claude-mcp&action=delete&type=CadModel&id=a
 check "agent cannot delete" '"allowed":false' "$R"
 
 # Grant User:gerard operator on Drone:123
-R=$(curl -s -X PUT "$PERM/grant" -H "Content-Type: application/json" \
-  -d '{"subject":"User:gerard","relation":"operator","type":"Drone","id":"123"}')
+R=$(grant '{"subject":"User:gerard","relation":"operator","type":"Drone","id":"123"}')
 check "grant gerard operator on drone" '"granted"' "$R"
 
 # Gerard can execute_command on drone
@@ -352,8 +350,7 @@ R=$(curl -s "$PERM/check?actor=User:gerard&action=execute_command&type=Drone&id=
 check "gerard can execute drone command" '"allowed":true' "$R"
 
 # Revoke agent editor
-R=$(curl -s -X DELETE "$PERM/revoke" -H "Content-Type: application/json" \
-  -d '{"subject":"Agent:claude-mcp","relation":"editor","type":"CadModel","id":"abc123"}')
+R=$(revoke '{"subject":"Agent:claude-mcp","relation":"editor","type":"CadModel","id":"abc123"}')
 check "revoke agent editor" '"revoked"' "$R"
 
 # Agent can no longer execute
