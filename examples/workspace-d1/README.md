@@ -144,12 +144,13 @@ mise run workspace-d1-test     # 66 integration tests (requires workspace-d1-app
 # 1. Create D1 database and paste the ID into wrangler.toml [env.production]
 wrangler d1 create workspace-db
 
-# 2. Enable read replication (one-time — dashboard or REST API only, no wrangler CLI support yet)
-# Dashboard: Workers & Pages > D1 > your database > Settings > Enable Read Replication
+# 2. Enable read replication (one-time)
+# Dashboard: https://dash.cloudflare.com/{account_id}/workers/d1/{database_id}/settings
 # REST API:
 # curl -X PUT "https://api.cloudflare.com/client/v4/accounts/{account_id}/d1/database/{database_id}" \
 #   -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
 #   -d '{"read_replication": {"mode": "auto"}}'
+# After enabling, global read replicas are automatic — no further config needed.
 
 # 3. Create R2 bucket
 wrangler r2 bucket create workspace-files
