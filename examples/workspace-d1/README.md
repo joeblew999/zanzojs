@@ -21,7 +21,6 @@ What this adds beyond the paper:
 - **SQL pushdown** via `@zanzojs/drizzle` — permission checks as `EXISTS` subqueries, never loading tuples into memory per request
 - **Workers-native** — runs in a 128MB isolate, zero external service dependency, zero network hop on check
 
-> **Scaling note:** D1 global read replication is automatic — Cloudflare provisions replicas in every region and routes reads to the nearest copy transparently. Writes still go to the primary. For this Zanzibar pattern (read-heavy permission checks) that means it scales out globally with zero config.
 
 The library name is literally derived from it: **Zanzo**js = **Zanzi**bar.
 
