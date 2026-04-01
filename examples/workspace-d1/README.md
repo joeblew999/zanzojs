@@ -1,5 +1,15 @@
 # workspace-d1
 
+## Why this scales globally for free
+
+- **Workers** — your code runs in 330+ edge locations worldwide, automatically. Zero config.
+- **D1** — reads scale out globally via automatic replicas in every region (ENAM, WNAM, WEUR, EEUR, APAC, OC). Enable once, free forever.
+- **R2** — reads are globally cached out of the box. Enable Local Uploads for fast writes from anywhere too. Free.
+
+No infrastructure to manage. No autoscaling config. Just deploy.
+
+---
+
 ## Google Zanzibar on Cloudflare D1
 
 This pattern is Google Zanzibar — the authorization system behind Google Drive, Gmail, YouTube, and Maps — running natively on Cloudflare Workers + D1 instead of Google Spanner.
