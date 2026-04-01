@@ -151,6 +151,7 @@ wrangler d1 create workspace-db
 #   -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
 #   -d '{"read_replication": {"mode": "auto"}}'
 # After enabling, global read replicas are automatic — no further config needed.
+# Free: replicas cost nothing extra, same D1 billing (rows read/written) with or without replication.
 
 # 3. Create R2 bucket
 wrangler r2 bucket create workspace-files
