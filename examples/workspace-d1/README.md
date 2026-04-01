@@ -8,6 +8,7 @@ ReBAC permission API + `@cloudflare/shell` filesystem worker.
 
 - Stores files in Cloudflare D1 (small files) or R2 (>~1.5MB, automatic spillover)
 - Enforces permissions via `zanzo_tuples` D1 table — every filesystem op is permission-gated
+- Handles **domain resources** (Project, CadModel, Drone, etc.) in the same tuple table — one `/check`, `/grant`, `/revoke` API for everything
 - Exposes a typed RPC contract (`src/types.ts`) with zero transitive deps
 
 ## Architecture
@@ -67,10 +68,27 @@ await env.FILES.moveDir('/demo/src', '/demo/dst', 'User:alice')
 
 ## Permission model
 
-- Owning a **Directory** grants access to everything inside it (parent path inheritance)
-- `File` and `Directory` entities defined in `src/schema-fs.ts`
-- Domain resources (`Project`, `CadModel`, `Drone`) in `src/schema-domain.ts`
-- All schemas merged into one engine via `mergeSchemas()` from `@zanzojs/core`
+Two schemas, one tuple table, one engine:
+
+**Filesystem** (`src/schema-fs.ts`) — driven by `@cloudflare/shell`:
+- Owning a `Directory` grants access to everything inside it (parent path inheritance)
+- `File` and `Directory` entities with `read / write / delete / share` actions
+
+**Domain resources** (`src/schema-domain.ts`) — your application resources:
+- `Project`, `CadModel`, `Drone` with custom actions (`execute_command`, `read_telemetry`, …)
+- Actors: `User:alice`, `Agent:claude-mcp`, `Service:ricos`
+- Add your own entity types here — schema drives what `check()` allows
+
+Both schemas merged via `mergeSchemas()` from `@zanzojs/core` into a single `ZanzoEngine`. Same `/grant`, `/revoke`, `/check` API for filesystem and domain resources alike:
+
+```bash
+# Filesystem
+curl -X PUT /grant -d '{"subject":"User:alice","relation":"owner","type":"Directory","id":"/projects/demo"}'
+
+# Domain resource — same API, different type
+curl -X PUT /grant -d '{"subject":"Agent:claude-mcp","relation":"editor","type":"CadModel","id":"abc123"}'
+curl /check?actor=Agent:claude-mcp&action=execute_command&type=CadModel&id=abc123
+```
 
 ## HTTP surface (debug / curl)
 
