@@ -12,21 +12,22 @@ The core idea is identical:
 - **Parent inheritance** — owning a parent grants access to children (userset rewrite in the Zanzibar paper)
 
 What Google added that we don't need:
-- **Zookies** — consistency tokens for stale reads across global replicas (irrelevant on D1, single region)
+- **Zookies** — consistency tokens for stale reads across global replicas. D1 is single-region, so there are no cross-region replicas to go stale. Not needed.
 - **Leopard indexing** — precomputed group membership for billions of users (not needed at this scale)
-- **Global Spanner replication** — Cloudflare's edge handles distribution differently
+- **Global Spanner replication** — D1 is intentionally single-region SQLite. Workers run globally at the edge but all D1 queries route to one region. The SQL pushdown via `EXISTS` subqueries keeps this fast — permission checks never load tuples into memory per request.
 
 What this adds beyond the paper:
 - **`@cloudflare/shell` `onChange` hook** — automatic tuple lifecycle when files are created/deleted
 - **SQL pushdown** via `@zanzojs/drizzle` — permission checks as `EXISTS` subqueries, never loading tuples into memory per request
 - **Workers-native** — runs in a 128MB isolate, zero external service dependency, zero network hop on check
 
+> **Scaling note:** D1 does not auto-replicate globally. If you need sub-10ms permission checks worldwide, move hot tuples to Cloudflare KV (globally replicated, ~1ms reads). D1 is the right default until you hit that wall.
+
 The library name is literally derived from it: **Zanzo**js = **Zanzi**bar.
 
 Reference: [Google Zanzibar paper](https://research.google/pubs/zanzibar-googles-consistent-global-authorization-system/)
 
 ---
-
 
 ReBAC permission API + `@cloudflare/shell` filesystem worker.
 
