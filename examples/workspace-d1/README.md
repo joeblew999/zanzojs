@@ -144,12 +144,20 @@ mise run workspace-d1-test     # 66 integration tests (requires workspace-d1-app
 # 1. Create D1 database and paste the ID into wrangler.toml [env.production]
 wrangler d1 create workspace-db
 
-# 2. Create R2 bucket
+# 2. Enable read replication (one-time — automatic global scale-out after this)
+wrangler d1 update workspace-db --read-replication-mode auto
+# or toggle in CF dashboard: Workers & Pages > D1 > Settings > Enable Read Replication
+
+# 3. Create R2 bucket
 wrangler r2 bucket create workspace-files
 
-# 3. Apply migrations
+# 4. Apply migrations
 wrangler d1 migrations apply workspace-db --env production
 
-# 4. Deploy
+# 5. Deploy
 wrangler deploy --env production
 ```
+
+Once enabled, D1 automatically maintains read replicas in every region (ENAM, WNAM, WEUR, EEUR, APAC, OC)
+and routes reads to the nearest copy. This worker uses the Sessions API (`env.DB.withSession()`) so
+sequential consistency is guaranteed across replicas. No further config needed.
