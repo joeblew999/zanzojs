@@ -1,0 +1,23 @@
+[daemons.workspace-d1]
+run = "mise exec -- pnpm exec wrangler dev"
+dir = "examples/workspace-d1"
+ready_port = 8787
+retry = true
+auto_bump_port = false
+port_bump_attempts = 10
+
+[daemons.workspace-d1-app]
+run = "mise exec -- pnpm exec wrangler dev --port 8788"
+dir = "examples/workspace-d1-app"
+ready_port = 8788
+retry = true
+auto_bump_port = false
+port_bump_attempts = 10
+
+[daemons.workspace-chat]
+run = "mise exec -- npx vite dev --port 5173"
+retry = true
+ready_port = 5173
+auto_bump_port = false
+port_bump_attempts = 10
+dir = ".src/agents/examples/workspace-chat"

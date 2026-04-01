@@ -1,3 +1,6 @@
+# External source references (cloned for research, not committed)
+.src/
+
 # Dependencies
 node_modules/
 
@@ -64,9 +67,13 @@ Thumbs.db
 # Caches
 .eslintcache
 
+# Wrangler local dev state (D1, R2, KV, cache, tmp bundles)
+.wrangler/
+
 # Databases
 *.db
 *.db-shm
 *.db-wal
 *.sqlite
 *.sqlite3
+examples/workspace-d1/package-lock.json

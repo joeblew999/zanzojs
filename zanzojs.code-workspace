@@ -1,0 +1,20 @@
+{
+  "folders": [
+    {
+      "name": "zanzojs",
+      "path": "."
+    },
+    {
+      "name": "cloudflare/agents (reference)",
+      "path": ".src/agents"
+    }
+  ],
+  "settings": {
+    "mise.configureExtensionsAutomatically": true
+  },
+  "extensions": {
+    "recommendations": [
+      "hverlin.mise-vscode"
+    ]
+  }
+}

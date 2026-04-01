@@ -1,0 +1,53 @@
+name               = "workspace-d1"
+main               = "src/worker.ts"
+compatibility_date = "2026-01-28"
+compatibility_flags = ["nodejs_compat"]
+
+migrations_dir = "migrations"
+
+# ── Local development ─────────────────────────────────────────────────────────
+
+[[d1_databases]]
+binding       = "DB"
+database_name = "workspace-db"
+database_id   = "local"          # local-only placeholder — see [env.production] below
+
+[[r2_buckets]]
+binding     = "FILES"
+bucket_name = "workspace-files"
+
+# ── Production ────────────────────────────────────────────────────────────────
+# Deploy with: wrangler deploy --env production
+#
+# Before first deploy:
+#   wrangler d1 create workspace-db          → paste the database_id below
+#   wrangler r2 bucket create workspace-files
+#   wrangler d1 migrations apply workspace-db --env production
+
+[env.production]
+
+[[env.production.d1_databases]]
+binding       = "DB"
+database_name = "workspace-db"
+database_id   = "REPLACE_WITH_REAL_D1_ID"   # wrangler d1 create workspace-db
+
+[[env.production.r2_buckets]]
+binding     = "FILES"
+bucket_name = "workspace-files"
+
+# ── Service Binding — how other Workers call this Worker ──────────────────────
+# In your calling Worker's wrangler.toml add:
+#
+#   [[services]]
+#   binding    = "FILES"
+#   service    = "workspace-d1"
+#   entrypoint = "WorkspaceD1"     # the exported WorkerEntrypoint class
+#
+#   [[env.production.services]]
+#   binding    = "FILES"
+#   service    = "workspace-d1"
+#   entrypoint = "WorkspaceD1"
+#
+# Then import the contract (zero transitive deps):
+#   import type { WorkspaceD1RPC } from '@zanzojs/example-workspace-d1/types';
+#   interface Env { FILES: WorkspaceD1RPC }

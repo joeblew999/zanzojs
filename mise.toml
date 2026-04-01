@@ -1,0 +1,222 @@
+# mise.toml — zanzojs
+#
+# Install: https://mise.jdx.dev
+#
+# Quickstart:
+#   mise install                    ← install tools (node, pnpm, pitchfork)
+#   mise run dev                    ← build + test
+#   mise run workspace-chat-start   ← run cloudflare/agents workspace-chat example
+
+[tools]
+node                   = "22"
+"github:jdx/pitchfork" = "latest"
+watchexec              = "latest"
+
+[env]
+PNPM_VERSION        = "10.24.0"
+WORKSPACE_CHAT_PORT = "5173"
+
+# ── zanzojs ───────────────────────────────────────────────────────────────────
+
+[tasks.install]
+description = "Install all JS dependencies"
+run = "corepack enable && corepack prepare pnpm@${PNPM_VERSION} --activate && pnpm install"
+
+[tasks.build]
+description = "Build all packages"
+depends = ["install"]
+run = "pnpm build"
+
+[tasks.test]
+description = "Run all tests"
+depends = ["build"]
+run = "pnpm test"
+
+[tasks.lint]
+description = "Lint all packages"
+run = "pnpm format"
+
+[tasks.dev]
+description = "Build and test all packages"
+depends = ["build", "test"]
+
+# ── .src — external research repos (gitignored) ───────────────────────────────
+
+[tasks.src-clone]
+description = "Clone all external research repos into .src/"
+dir = "{{config_root}}/.src"
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+
+clone_if_missing() {
+  local dir="$1" url="$2"
+  if [ -d "$dir/.git" ]; then
+    echo "OK  $dir already present"
+  else
+    echo "-->  cloning $url"
+    git clone "$url" "$dir"
+  fi
+}
+
+clone_if_missing agents https://github.com/cloudflare/agents
+echo "OK all research repos ready"
+"""
+
+[tasks.src-update]
+description = "Pull latest on all research repos in .src/"
+dir = "{{config_root}}/.src"
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+for dir in */; do
+  [ -d "$dir/.git" ] || continue
+  echo "-->  updating $dir"
+  git -C "$dir" pull --ff-only || echo "WARN $dir could not fast-forward, skipped"
+done
+echo "OK done"
+"""
+
+[tasks.src-status]
+description = "Show latest commit for each research repo in .src/"
+dir = "{{config_root}}/.src"
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+for dir in */; do
+  [ -d "$dir/.git" ] || continue
+  printf "%-20s  %s\n" "$dir" "$(git -C "$dir" log --oneline -1)"
+done
+"""
+
+[tasks.src-clean]
+description = "Delete all cloned research repos from .src/ (restore with src-clone)"
+dir = "{{config_root}}/.src"
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+for dir in */; do
+  [ -d "$dir/.git" ] || continue
+  echo "-->  removing $dir"
+  rm -rf "$dir"
+done
+echo "OK done"
+"""
+
+# ── examples/workspace-d1 ────────────────────────────────────────────────────
+
+[tasks.workspace-d1-install]
+description = "Install workspace-d1 example dependencies"
+dir = "{{config_root}}"
+run = "corepack enable && corepack prepare pnpm@${PNPM_VERSION} --activate && pnpm install"
+
+[tasks.workspace-d1-migrate]
+description = "Apply D1 migrations locally for workspace-d1"
+depends = ["workspace-d1-install"]
+dir = "{{config_root}}/examples/workspace-d1"
+run = "pnpm exec wrangler d1 migrations apply workspace-db --local"
+
+[tasks.workspace-d1-reset]
+description = "Reset local D1 — wipe state, re-apply migrations, restart worker"
+dir = "{{config_root}}/examples/workspace-d1"
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+rm -rf .wrangler/state
+pnpm exec wrangler d1 migrations apply workspace-db --local
+pitchfork restart zanzojs/workspace-d1
+echo "OK database reset"
+"""
+
+[tasks.workspace-d1-test]
+description = "Run workspace-d1 integration tests (requires workspace-d1-start)"
+dir = "{{config_root}}/examples/workspace-d1"
+run = "bash test.sh"
+
+[tasks.workspace-d1-start]
+description = "Start workspace-d1 example (Cloudflare Worker + D1 → http://localhost:8787)"
+depends = ["workspace-d1-migrate"]
+run = "pitchfork start zanzojs/workspace-d1"
+
+[tasks.workspace-d1-stop]
+description = "Stop workspace-d1 example"
+run = "pitchfork stop zanzojs/workspace-d1"
+
+[tasks.workspace-d1-logs]
+description = "Tail workspace-d1 logs"
+run = "pitchfork logs zanzojs/workspace-d1"
+
+[tasks.workspace-d1-status]
+description = "Show workspace-d1 daemon status"
+run = "pitchfork status zanzojs/workspace-d1"
+
+# ── examples/workspace-d1-app ─────────────────────────────────────────────
+
+[tasks.workspace-d1-app-install]
+description = "Install workspace-d1-app dependencies"
+dir = "{{config_root}}"
+run = "corepack enable && corepack prepare pnpm@${PNPM_VERSION} --activate && pnpm install"
+
+[tasks.workspace-d1-app-start]
+description = "Start workspace-d1-app (port 8788) — requires workspace-d1-start"
+depends = ["workspace-d1-app-install"]
+run = "pitchfork start zanzojs/workspace-d1-app"
+
+[tasks.workspace-d1-app-stop]
+description = "Stop workspace-d1-app daemon"
+run = "pitchfork stop zanzojs/workspace-d1-app"
+
+[tasks.workspace-d1-app-logs]
+description = "Tail workspace-d1-app logs"
+run = "pitchfork logs zanzojs/workspace-d1-app"
+
+[tasks.workspace-d1-app-test]
+description = "Run workspace-d1-app demo via curl — requires both workers running"
+run = "curl -s http://localhost:8788/demo | jq ."
+
+# ── cloudflare/agents: workspace-chat example ────────────────────────────────
+
+[tasks.workspace-chat-install]
+description = "Install workspace-chat npm dependencies (runs from agents monorepo root)"
+depends = ["src-clone"]
+dir = "{{config_root}}/.src/agents"
+run = "npm install"
+
+[tasks.workspace-chat-start]
+description = "Start workspace-chat daemon (pitchfork.toml — waits until port $WORKSPACE_CHAT_PORT ready)"
+depends = ["workspace-chat-install"]
+run = "pitchfork start --force zanzojs/workspace-chat"
+
+[tasks.workspace-chat-stop]
+description = "Stop the workspace-chat daemon"
+run = "pitchfork stop zanzojs/workspace-chat"
+
+[tasks.workspace-chat-logs]
+description = "Tail workspace-chat logs"
+run = "pitchfork logs zanzojs/workspace-chat"
+
+[tasks.workspace-chat-status]
+description = "Show workspace-chat daemon status"
+run = "pitchfork status zanzojs/workspace-chat"
+
+[tasks.workspace-chat-tui]
+description = "Open pitchfork TUI dashboard"
+run = "pitchfork tui"
+
+[tasks.workspace-chat-open]
+description = "Open workspace-chat UI in browser"
+run = "open -a 'Google Chrome' http://localhost:$WORKSPACE_CHAT_PORT"
+
+[tasks.workspace-chat-debug]
+description = "Open Cloudflare Workers DevTools for workspace-chat (breakpoints, console, sources)"
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+URL=$(curl -s http://localhost:${WORKSPACE_CHAT_PORT}/__debug | grep -o 'https://devtools[^"]*' | head -1)
+if [ -z "$URL" ]; then
+  echo "ERROR workspace-chat is not running — start it with: mise run workspace-chat-start"
+  exit 1
+fi
+echo "Opening: $URL"
+open -a 'Google Chrome' "$URL"
+"""

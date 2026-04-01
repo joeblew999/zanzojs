@@ -1,0 +1,25 @@
+name               = "workspace-d1-app"
+main               = "src/worker.ts"
+compatibility_date = "2026-01-28"
+compatibility_flags = ["nodejs_compat"]
+
+# ── Local development ─────────────────────────────────────────────────────────
+# workspace-d1 must be running locally (mise run workspace-d1-start) before
+# starting this worker. The Service Binding resolves to localhost:8787 in dev.
+
+[[services]]
+binding = "FILES"
+service = "workspace-d1"
+# entrypoint not needed — WorkspaceD1 is the default export of workspace-d1/src/worker.ts
+# Only needed if using a named export (e.g. export class WorkspaceD1 without 'default')
+
+# ── Production ────────────────────────────────────────────────────────────────
+# Deploy with: wrangler deploy --env production
+# workspace-d1 must be deployed first: wrangler deploy --env production (in workspace-d1/)
+
+[env.production]
+
+[[env.production.services]]
+binding    = "FILES"
+service    = "workspace-d1"
+entrypoint = "WorkspaceD1"

@@ -1,0 +1,27 @@
+{
+  "name": "@zanzojs/example-workspace-d1",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "exports": {
+    "./types": "./src/types.ts"
+  },
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:migrate": "wrangler d1 migrations apply workspace-db --local"
+  },
+  "dependencies": {
+    "@cloudflare/shell": "*",
+    "@zanzojs/core": "workspace:*",
+    "@zanzojs/drizzle": "workspace:*",
+    "drizzle-orm": "catalog:",
+    "hono": "^4.7.7",
+    "hono-agents": "*"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260317.1",
+    "typescript": "^5.8.3",
+    "wrangler": "^4.0.0"
+  }
+}
