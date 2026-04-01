@@ -156,10 +156,14 @@ wrangler d1 create workspace-db
 # 3. Create R2 bucket
 wrangler r2 bucket create workspace-files
 
-# 4. Apply migrations
+# 4. Enable R2 Local Uploads (free, open beta — up to 75% faster writes from distant regions)
+# Reads are already cached globally by default. This makes writes global too.
+npx wrangler r2 bucket local-uploads enable workspace-files
+
+# 5. Apply migrations
 wrangler d1 migrations apply workspace-db --env production
 
-# 5. Deploy
+# 6. Deploy
 wrangler deploy --env production
 ```
 
