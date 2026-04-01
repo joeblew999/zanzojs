@@ -12,9 +12,9 @@ The core idea is identical:
 - **Parent inheritance** — owning a parent grants access to children (userset rewrite in the Zanzibar paper)
 
 What Google added that we don't need:
-- **Zookies** — consistency tokens for stale reads across global replicas. D1's read replication handles consistency automatically via the Sessions API. Not needed at this scale.
+- **Zookies** — consistency tokens for stale reads across global replicas. Not needed.
 - **Leopard indexing** — precomputed group membership for billions of users (not needed at this scale)
-- **Global Spanner replication** — D1 replicates reads globally and automatically across Cloudflare's network. Workers + D1 both scale out. The SQL pushdown via `EXISTS` subqueries keeps permission checks fast — tuples never loaded into memory per request.
+- **Global Spanner replication** — Cloudflare handles this. Workers and D1 both scale out automatically.
 
 What this adds beyond the paper:
 - **`@cloudflare/shell` `onChange` hook** — automatic tuple lifecycle when files are created/deleted
