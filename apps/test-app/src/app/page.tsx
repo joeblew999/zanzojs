@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, Suspense } from 'react';
 import { ZanzoProvider, useZanzo } from '@zanzojs/react';
 import { schema } from '@/lib/zanzo';
+import { useZanzoSocket } from '@/lib/useZanzoSocket';
 
 // ─── CRUD Actions ────────────────────────────────────────────────────────
 const CRUD_ACTIONS = ['create', 'read', 'update', 'delete'] as const;
@@ -336,26 +337,13 @@ export default function HomePage() {
     const [selectedUser, setSelectedUser] = useState('alice');
     const [activeWorkspace, setActiveWorkspace] = useState('ws1');
     const [activeTab, setActiveTab] = useState<'permissions' | 'files'>('permissions');
-    const [snapshot, setSnapshot] = useState<Record<string, string[]> | null>(null);
-    const [loading, setLoading] = useState(true);
 
-    const fetchPermissions = useCallback(async (userId: string) => {
-        setLoading(true);
-        try {
-            const res = await fetch(`/api/permissions?userId=${userId}`);
-            const data = await res.json();
-            setSnapshot(data);
-        } catch {
-            setSnapshot({});
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
-    useEffect(() => { fetchPermissions(selectedUser); }, [selectedUser, fetchPermissions]);
+    const actor = `User:${selectedUser}`;
+    // Live permission sync via ZanzoPermServer DO WebSocket.
+    // Snapshot updates instantly when any grant/revoke fires on the worker.
+    const { snapshot, connected } = useZanzoSocket(actor);
 
     const currentUser = USERS.find((u) => u.id === selectedUser)!;
-    const actor = `User:${selectedUser}`;
 
     return (
         <div style={{ display: 'flex', height: '100vh', width: '100vw' }}>
@@ -384,8 +372,8 @@ export default function HomePage() {
                 </div>
 
                 <div style={{ marginTop: 'auto', paddingTop: '1rem', borderTop: '1px solid var(--border-subtle)', fontSize: '0.75rem', color: 'var(--text-dim)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ width: '6px', height: '6px', background: 'var(--success)', borderRadius: '50%' }}></span>
-                    Connected — port 8787
+                    <span style={{ width: '6px', height: '6px', background: connected ? 'var(--success)' : 'var(--error)', borderRadius: '50%' }}></span>
+                    {connected ? 'Live — port 8787' : 'Connecting...'}
                 </div>
             </aside>
 
@@ -422,16 +410,16 @@ export default function HomePage() {
                 <div style={{ flexGrow: 1, overflowY: 'auto', padding: '1.5rem' }}>
                     {activeTab === 'permissions' ? (
                         <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
-                            {loading ? (
-                                <div className="card-base" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-ghost)' }}>Loading...</div>
-                            ) : snapshot ? (
+                            {!connected ? (
+                                <div className="card-base" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-ghost)' }}>Connecting to worker...</div>
+                            ) : (
                                 <ZanzoProvider snapshot={snapshot} key={`${selectedUser}-${activeWorkspace}`}>
                                     <Suspense fallback={<div className="card-base" style={{ padding: '3rem', textAlign: 'center' }}>Hydrating...</div>}>
                                         <WorkspaceModules workspaceId={activeWorkspace} />
                                     </Suspense>
                                 </ZanzoProvider>
-                            ) : null}
-                            <GrantAccess onGrant={() => fetchPermissions(selectedUser)} />
+                            )}
+                            <GrantAccess onGrant={() => {/* snapshot auto-updates via WebSocket */}} />
                         </div>
                     ) : (
                         <div style={{ height: '100%' }}>
