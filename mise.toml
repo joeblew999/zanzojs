@@ -161,6 +161,11 @@ run = "pnpm dev"
 description = "Open test-app in browser"
 run = "open http://localhost:3000"
 
+[tasks.test-app-e2e]
+description = "Run test-app Playwright E2E tests (requires workspace-d1-start + test-app-start)"
+dir = "{{config_root}}/apps/test-app"
+run = "pnpm e2e"
+
 # ── cloudflare/agents: workspace-chat example ────────────────────────────────
 
 [tasks.workspace-chat-install]
