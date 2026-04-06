@@ -12,7 +12,7 @@
     "db:migrate": "wrangler d1 migrations apply workspace-db --local"
   },
   "dependencies": {
-    "@cloudflare/shell": "*",
+    "@cloudflare/shell": "^0.3.1",
     "@zanzojs/core": "workspace:*",
     "@zanzojs/drizzle": "workspace:*",
     "agents": "*",
