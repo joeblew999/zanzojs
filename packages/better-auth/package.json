@@ -1,0 +1,43 @@
+{
+  "name": "@zanzojs/better-auth",
+  "version": "0.1.0",
+  "description": "Better Auth plugin for @zanzojs/core ReBAC — wires Better Auth sessions to zanzo actor strings, exposes grant/revoke/check/snapshot via Hono.",
+  "keywords": ["zanzojs", "rebac", "better-auth", "authorization", "cloudflare", "hono"],
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist", "README.md"],
+  "publishConfig": { "access": "public" },
+  "scripts": {
+    "build": "tsup",
+    "dev":   "tsup --watch",
+    "test":  "vitest run",
+    "test:types": "vitest run --typecheck"
+  },
+  "peerDependencies": {
+    "@zanzojs/core": "^0.3.0",
+    "better-auth":   ">=1.0.0",
+    "hono":          ">=4.0.0"
+  },
+  "peerDependenciesOptional": {
+    "better-auth": true
+  },
+  "devDependencies": {
+    "@zanzojs/core": "workspace:*",
+    "@cloudflare/workers-types": "^4.20260317.1",
+    "better-auth":   "^1.2.7",
+    "hono":          "^4.7.7",
+    "tsup":          "latest",
+    "typescript":    "catalog:",
+    "vitest":        "latest"
+  }
+}
