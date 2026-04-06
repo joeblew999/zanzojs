@@ -5,10 +5,17 @@
  *   @cloudflare/shell  — Workspace (D1 + R2) + createWorkspaceStateBackend()
  *   @zanzojs/core      — ReBAC schema + engine, tuple-based permission checks
  *   drizzle-orm/d1     — D1 query layer for grant/revoke/check
+ *   agents             — Agent base class (extends partyserver Server → DurableObject)
+ *   hono-agents        — Hono middleware that routes /agents/* WebSocket upgrades
  *
  * RPC (Service Binding) — import WorkspaceD1RPC from types.ts, zero transitive deps:
  *   await env.FILES.grant('User:alice', 'owner', 'Directory', '/demo')
  *   await env.FILES.writeFile('/demo/notes.txt', 'hello', 'User:alice')
+ *
+ * WebSocket (permission sync):
+ *   Browser connects to ws://host/agents/zanzo-perm-server/User:alice
+ *   ZanzoPermServer DO sends permission snapshot on connect and on every tuple change.
+ *   useAgent() + ZanzoProvider gives O(1) client-side permission checks.
  *
  * HTTP (debug only):
  *   GET /check   PUT /grant   DELETE /revoke   GET /tuples   GET /fs
@@ -16,16 +23,24 @@
 
 import { WorkerEntrypoint } from 'cloudflare:workers';
 import { Hono } from 'hono';
+import { partyserverMiddleware } from 'hono-party';
 import { drizzle } from 'drizzle-orm/d1';
 import { eq, and } from 'drizzle-orm';
 import { Workspace, createWorkspaceStateBackend, type WorkspaceChangeEvent } from '@cloudflare/shell';
 import { zanzoTuples, engine } from './schema';
 import { PermissionedBackend } from './permissioned-backend';
+import { ZanzoPermServer } from './perm-server';
 import type { WorkspaceD1RPC, FileStat } from './types';
+
+// Re-export ZanzoPermServer so wrangler can find the DO class in this module.
+export { ZanzoPermServer };
 
 interface Env {
   DB: D1Database;
   FILES: R2Bucket;
+  // Plain DurableObjectNamespace — avoids workers-types brand constraint mismatch
+  // with the Agent class hierarchy. The DO is accessed only via .idFromName()/.get().
+  ZanzoPermServer: DurableObjectNamespace;
 }
 
 // ── Workspace singleton ───────────────────────────────────────────────────────
@@ -106,9 +121,32 @@ function parentPaths(path: string): string[] {
   return parents;
 }
 
+// ── Permission live sync ──────────────────────────────────────────────────────
+// After any tuple mutation, wake the actor's ZanzoPermServer DO and ask it to
+// rebuild + broadcast a fresh snapshot to all connected browser tabs.
+// Fire-and-forget — don't block the RPC response on the notification.
+
+function notifyActor(env: Env, actor: string): void {
+  // Wake the actor's ZanzoPermServer DO via a plain fetch POST.
+  // The DO's onRequest() handles POST /notify — rebuilds snapshot and broadcasts.
+  // x-partykit-room sets this.name inside the Server base class on first request.
+  const id   = env.ZanzoPermServer.idFromName(actor);
+  const stub = env.ZanzoPermServer.get(id);
+  stub.fetch(new Request('http://do-internal/notify', {
+    method: 'POST',
+    headers: { 'x-partykit-room': actor },
+  })).catch((e: unknown) => console.warn(`[zanzo] notifyActor(${actor}) failed:`, e));
+}
+
 // ── HTTP app (debug / permission management) ──────────────────────────────────
 
 const app = new Hono<{ Bindings: Env }>();
+
+// partyserverMiddleware (hono-party) intercepts WebSocket upgrades to
+// /parties/{class-kebab-name}/{room} and routes them to the matching DO.
+// ZanzoPermServer → /parties/zanzo-perm-server/{actor}
+// Non-WS and non-/parties/* requests fall through to Hono routes below.
+app.use('*', partyserverMiddleware());
 
 function getActor(c: { req: { query(k: string): string | undefined } }) {
   return c.req.query('actor') ?? 'User:anonymous';
@@ -127,6 +165,7 @@ app.put('/grant', async (c) => {
   const { subject, relation, type, id } = await c.req.json<{ subject: string; relation: string; type: string; id: string }>();
   const object = `${type}:${id}`;
   await drizzle(c.env.DB).insert(zanzoTuples).values({ subject, relation, object }).onConflictDoNothing().run();
+  notifyActor(c.env, subject);
   return c.json({ granted: { subject, relation, object } });
 });
 
@@ -136,6 +175,7 @@ app.delete('/revoke', async (c) => {
   const result = await drizzle(c.env.DB).delete(zanzoTuples)
     .where(and(eq(zanzoTuples.subject, subject), eq(zanzoTuples.relation, relation), eq(zanzoTuples.object, object)))
     .run();
+  notifyActor(c.env, subject);
   return c.json({ revoked: { subject, relation, object }, count: result.meta.changes });
 });
 
@@ -167,6 +207,7 @@ export default class WorkspaceD1 extends WorkerEntrypoint<Env> implements Worksp
     await drizzle(this.env.DB).insert(zanzoTuples)
       .values({ subject, relation, object: `${type}:${id}` })
       .onConflictDoNothing().run();
+    notifyActor(this.env, subject);
   }
 
   async revoke(subject: string, relation: string, type: string, id: string): Promise<number> {
@@ -174,6 +215,7 @@ export default class WorkspaceD1 extends WorkerEntrypoint<Env> implements Worksp
     const result = await drizzle(this.env.DB).delete(zanzoTuples)
       .where(and(eq(zanzoTuples.subject, subject), eq(zanzoTuples.relation, relation), eq(zanzoTuples.object, object)))
       .run();
+    notifyActor(this.env, subject);
     return result.meta.changes;
   }
 
@@ -200,21 +242,54 @@ export default class WorkspaceD1 extends WorkerEntrypoint<Env> implements Worksp
   async listDir(path: string, actor: string): Promise<string[]>       { return this.fs(actor).readdir(path); }
   async glob(pattern: string, actor: string): Promise<string[]>       { return this.fs(actor).glob(pattern); }
 
-  // ── Write ────────────────────────────────────────────────────────────────────
+  // ── Write — notify actor after each op (onFsChange adds tuples) ──────────────
 
-  async writeFile(path: string, content: string, actor: string): Promise<void>  { await this.fs(actor).writeFile(path, content); }
-  async appendFile(path: string, content: string, actor: string): Promise<void> { await this.fs(actor).appendFile(path, content); }
-  async mkdir(path: string, actor: string): Promise<void>                        { await this.fs(actor).mkdir(path, { recursive: true }); }
+  async writeFile(path: string, content: string, actor: string): Promise<void> {
+    await this.fs(actor).writeFile(path, content);
+    notifyActor(this.env, actor);
+  }
+
+  async appendFile(path: string, content: string, actor: string): Promise<void> {
+    await this.fs(actor).appendFile(path, content);
+    notifyActor(this.env, actor);
+  }
+
+  async mkdir(path: string, actor: string): Promise<void> {
+    await this.fs(actor).mkdir(path, { recursive: true });
+    notifyActor(this.env, actor);
+  }
 
   // ── Move / Copy ──────────────────────────────────────────────────────────────
 
-  async moveFile(from: string, to: string, actor: string): Promise<void> { await this.fs(actor).mv(from, to); }
-  async copyFile(from: string, to: string, actor: string): Promise<void> { await this.fs(actor).cp(from, to); }
-  async moveDir(from: string, to: string, actor: string): Promise<void>  { await this.fs(actor).moveTree(from, to); }
-  async copyDir(from: string, to: string, actor: string): Promise<void>  { await this.fs(actor).copyTree(from, to); }
+  async moveFile(from: string, to: string, actor: string): Promise<void> {
+    await this.fs(actor).mv(from, to);
+    notifyActor(this.env, actor);
+  }
+
+  async copyFile(from: string, to: string, actor: string): Promise<void> {
+    await this.fs(actor).cp(from, to);
+    notifyActor(this.env, actor);
+  }
+
+  async moveDir(from: string, to: string, actor: string): Promise<void> {
+    await this.fs(actor).moveTree(from, to);
+    notifyActor(this.env, actor);
+  }
+
+  async copyDir(from: string, to: string, actor: string): Promise<void> {
+    await this.fs(actor).copyTree(from, to);
+    notifyActor(this.env, actor);
+  }
 
   // ── Delete ───────────────────────────────────────────────────────────────────
 
-  async deleteFile(path: string, actor: string): Promise<void> { await this.fs(actor).rm(path); }
-  async deleteDir(path: string, actor: string): Promise<void>  { await this.fs(actor).rm(path, { recursive: true }); }
+  async deleteFile(path: string, actor: string): Promise<void> {
+    await this.fs(actor).rm(path);
+    notifyActor(this.env, actor);
+  }
+
+  async deleteDir(path: string, actor: string): Promise<void> {
+    await this.fs(actor).rm(path, { recursive: true });
+    notifyActor(this.env, actor);
+  }
 }

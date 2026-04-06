@@ -30,4 +30,7 @@ export const zanzoTuples = sqliteTable('zanzo_tuples', {
 // in both schemas. Actors (User/Agent/Service) live in domainSchema only.
 // fsSchema has File + Directory; domainSchema has actors + Project/CadModel/Drone.
 
-export const engine = new ZanzoEngine(mergeSchemas(fsSchema, domainSchema));
+// mergedSchema is exported separately so perm-server.ts can create fresh
+// per-request engine instances without sharing mutable state.
+export const mergedSchema = mergeSchemas(fsSchema, domainSchema);
+export const engine = new ZanzoEngine(mergedSchema);

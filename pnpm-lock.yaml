@@ -204,6 +204,9 @@ importers:
       '@zanzojs/drizzle':
         specifier: workspace:*
         version: link:../../packages/drizzle
+      agents:
+        specifier: '*'
+        version: 0.7.9(@cloudflare/workers-types@4.20260401.1)(ai@6.0.142(zod@3.25.76))(react@18.3.1)(zod@3.25.76)
       drizzle-orm:
         specifier: 'catalog:'
         version: 0.30.10(@cloudflare/workers-types@4.20260401.1)(@opentelemetry/api@1.9.0)(@types/better-sqlite3@7.6.13)(@types/react@18.3.28)(better-sqlite3@11.10.0)(postgres@3.4.8)(react@18.3.1)
@@ -213,6 +216,15 @@ importers:
       hono-agents:
         specifier: '*'
         version: 3.0.7(agents@0.7.9(@cloudflare/workers-types@4.20260401.1)(ai@6.0.142(zod@3.25.76))(react@18.3.1)(zod@3.25.76))(hono@4.12.9)
+      hono-party:
+        specifier: '*'
+        version: 2.0.3(@cloudflare/workers-types@4.20260401.1)(hono@4.12.9)(partyserver@0.3.3(@cloudflare/workers-types@4.20260401.1))
+      partyserver:
+        specifier: '*'
+        version: 0.3.3(@cloudflare/workers-types@4.20260401.1)
+      partysocket:
+        specifier: '*'
+        version: 1.1.16(react@18.3.1)
     devDependencies:
       '@cloudflare/workers-types':
         specifier: ^4.20260317.1
@@ -5414,6 +5426,13 @@ packages:
     peerDependencies:
       agents: ^0.7.0
       hono: ^4.6.17
+
+  hono-party@2.0.3:
+    resolution: {integrity: sha512-KK630NxW53voNKta0bc5JLY/k7dtuPWJS9G4GZqSF57y79dfx5HY6wW1b0lPEaEzL+4vdA+bZGKl4BJnQUSUog==}
+    peerDependencies:
+      '@cloudflare/workers-types': ^4.20240729.0
+      hono: ^4.6.17
+      partyserver: '>=0.2.0 <1.0.0'
 
   hono@4.12.9:
     resolution: {integrity: sha512-wy3T8Zm2bsEvxKZM5w21VdHDDcwVS1yUFFY6i8UobSsKfFceT7TOwhbhfKsDyx7tYQlmRM5FLpIuYvNFyjctiA==}
@@ -13185,6 +13204,12 @@ snapshots:
     dependencies:
       agents: 0.7.9(@cloudflare/workers-types@4.20260401.1)(ai@6.0.142(zod@3.25.76))(react@18.3.1)(zod@3.25.76)
       hono: 4.12.9
+
+  hono-party@2.0.3(@cloudflare/workers-types@4.20260401.1)(hono@4.12.9)(partyserver@0.3.3(@cloudflare/workers-types@4.20260401.1)):
+    dependencies:
+      '@cloudflare/workers-types': 4.20260401.1
+      hono: 4.12.9
+      partyserver: 0.3.3(@cloudflare/workers-types@4.20260401.1)
 
   hono@4.12.9: {}
 

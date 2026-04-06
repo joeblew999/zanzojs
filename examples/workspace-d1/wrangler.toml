@@ -5,6 +5,22 @@ compatibility_flags = ["nodejs_compat"]
 
 migrations_dir = "migrations"
 
+# ── ZanzoPermServer Durable Object ────────────────────────────────────────────
+# One DO instance per actor (e.g. "User:alice"). Manages WebSocket connections
+# and pushes fresh permission snapshots on connect + after grant/revoke.
+#
+# Browser connects to: ws://host/parties/zanzo-perm-server/{actor}
+# partyserverMiddleware (hono-party) routes /parties/* to this DO automatically.
+# The DO class is in src/perm-server.ts and re-exported from src/worker.ts.
+
+[[durable_objects.bindings]]
+name       = "ZanzoPermServer"
+class_name = "ZanzoPermServer"
+
+[[migrations]]
+tag               = "v1"
+new_sqlite_classes = ["ZanzoPermServer"]
+
 # ── Local development ─────────────────────────────────────────────────────────
 
 [[d1_databases]]
