@@ -124,6 +124,7 @@ function pp(prefix: string, reqPath: string): string {
 function forbid(e: unknown): never {
   const msg = (e as any)?.message ?? '';
   if (msg.startsWith('Forbidden')) throw new HTTPException(403, { message: msg });
+  if (msg.includes('ENOENT') || msg.includes('not found')) throw new HTTPException(404, { message: 'Not found' });
   throw e as Error;
 }
 
