@@ -1,3 +1,5 @@
+'use client';
+
 import { useContext } from 'react';
 import { ZanzoContext, ZanzoContextValue } from './ZanzoProvider.js';
 import { ZanzoError, ZanzoErrorCode, SchemaData } from '@zanzojs/core';

@@ -9,20 +9,26 @@ import { zanzoTuples } from '../drizzle/schema';
 export const runtime = 'edge';
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const { env } = getRequestContext();
-  const db = drizzle(env.DB);
-  
-  // Simulation: we use a hardcoded User:1 for the example
-  const userId = 'User:1';
+  let snapshot: Record<string, string[]> = {};
 
-  // Load user tuples from D1
-  const userTuples = await db.select()
-    .from(zanzoTuples)
-    .where(like(zanzoTuples.subject, `${userId}%`));
+  try {
+    const { env } = getRequestContext();
+    const db = drizzle(env.DB);
 
-  const engine = new ZanzoEngine(schema);
-  engine.load(userTuples);
-  const snapshot = createZanzoSnapshot(engine, userId);
+    // Simulation: we use a hardcoded User:1 for the example
+    const userId = 'User:1';
+
+    // Load user tuples from D1
+    const userTuples = await db.select()
+      .from(zanzoTuples)
+      .where(like(zanzoTuples.subject, `${userId}%`));
+
+    const engine = new ZanzoEngine(schema);
+    engine.load(userTuples);
+    snapshot = createZanzoSnapshot(engine, userId);
+  } catch {
+    // No Cloudflare runtime during SSG — render with empty snapshot
+  }
 
   return (
     <html lang="en">
