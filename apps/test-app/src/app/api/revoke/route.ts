@@ -1,82 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { removeDerivedTuples, buildBulkDeleteCondition } from '@zanzojs/core';
-import { engine } from '@/lib/zanzo';
-import { db } from '@/db';
-import { zanzoTuples } from '@/db/schema';
-import { eq, and } from 'drizzle-orm';
+
+const WORKER_URL = process.env.WORKER_URL ?? 'http://localhost:8787';
 
 /**
  * POST /api/revoke
- * Body: { subject: string, relation: string, object: string }
- *
- * Collapses the tuple and its derivations within a single transaction.
+ * Body: { subject, relation, object }  — object is "Type:id"
+ * Proxies to workspace-d1 DELETE /zanzo/revoke with { subject, relation, type, id }
  */
 export async function POST(request: NextRequest) {
-  const body = await request.json();
+  const body = await request.json() as { subject: string; relation: string; object: string };
   const { subject, relation, object } = body;
 
   if (!subject || !relation || !object) {
-    return NextResponse.json(
-      { error: 'Missing required fields: subject, relation, object' },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: 'Missing required fields: subject, relation, object' }, { status: 400 });
   }
 
-  const baseTuple = { subject, relation, object };
-
-  try {
-    // 1. Calculate derivations to remove OUTSIDE the transaction
-    const derived = await removeDerivedTuples({
-      schema: engine.getSchema(),
-      revokedTuple: baseTuple,
-      fetchChildren: async (parent, rel) => {
-        const rows = db
-          .select({ object: zanzoTuples.object })
-          .from(zanzoTuples)
-          .where(
-            and(
-              eq(zanzoTuples.subject, parent),
-              eq(zanzoTuples.relation, rel),
-            ),
-          )
-          .all();
-        return rows.map((r) => r.object);
-      },
-    });
-
-    // 2. Open a synchronous transaction for writes
-    const result = db.transaction((tx) => {
-      const allToDelete = [baseTuple, ...derived];
-      const conditions = buildBulkDeleteCondition(allToDelete);
-
-      let deleted = 0;
-      for (const [sub, rel, obj] of conditions) {
-        const res = tx
-          .delete(zanzoTuples)
-          .where(
-            and(
-              eq(zanzoTuples.subject, sub),
-              eq(zanzoTuples.relation, rel),
-              eq(zanzoTuples.object, obj),
-            ),
-          )
-          .run();
-        deleted += res.changes;
-      }
-
-      return {
-        deleted,
-        base: baseTuple,
-        derived,
-      };
-    });
-
-    return NextResponse.json(result);
-  } catch (err) {
-    console.error('[Revoke API] Error:', err);
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'Unknown error' },
-      { status: 500 },
-    );
+  const colon = object.indexOf(':');
+  if (colon === -1) {
+    return NextResponse.json({ error: 'object must be "Type:id"' }, { status: 400 });
   }
+  const type = object.slice(0, colon);
+  const id   = object.slice(colon + 1);
+
+  const actor = request.headers.get('x-actor') ?? `User:alice`;
+
+  const res = await fetch(`${WORKER_URL}/zanzo/revoke`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json', 'x-actor': actor },
+    body: JSON.stringify({ subject, relation, type, id }),
+  });
+
+  const data = await res.json();
+  if (!res.ok) return NextResponse.json(data, { status: res.status });
+
+  return NextResponse.json({ deleted: data.count ?? 1, ...data });
 }

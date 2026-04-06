@@ -150,6 +150,17 @@ run = "pitchfork logs zanzojs/workspace-d1"
 description = "Show workspace-d1 daemon status"
 run = "pitchfork status zanzojs/workspace-d1"
 
+# ── test-app — React GUI for workspace-d1 (port 3000) ────────────────────────
+
+[tasks.test-app-start]
+description = "Start test-app Next.js GUI (requires workspace-d1 to be running on port 8787)"
+dir = "{{config_root}}/apps/test-app"
+run = "pnpm dev"
+
+[tasks.test-app-open]
+description = "Open test-app in browser"
+run = "open http://localhost:3000"
+
 # ── cloudflare/agents: workspace-chat example ────────────────────────────────
 
 [tasks.workspace-chat-install]
