@@ -45,8 +45,8 @@ export type CleanupMode = 'none' | 'delete';
 
 /** Minimal WorkspaceChangeEvent shape from @cloudflare/shell */
 export interface WorkspaceChangeEvent {
-  type: 'create' | 'delete' | 'rename';
-  entryType: 'file' | 'directory';
+  type: 'create' | 'delete' | 'rename' | 'update';
+  entryType: 'file' | 'directory' | 'symlink';
   path: string;
 }
 

@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@cloudflare/shell": "^0.3.1",
+    "@zanzojs/better-auth": "workspace:*",
     "@zanzojs/core": "workspace:*",
     "@zanzojs/drizzle": "workspace:*",
     "agents": "*",
