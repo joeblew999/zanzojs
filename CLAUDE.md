@@ -11,47 +11,35 @@ A zero-dependency, Cloudflare Workers-native ReBAC library inspired by Google Za
 - `@zanzojs/react` — React context + hooks for O(1) frontend permission checks
 - `@zanzojs/angular` — Angular service + signals integration
 - `@zanzojs/cli` — schema scaffolding and validation
-- `@zanzojs/better-auth` — **Better Auth plugin** (in progress — see [docs/adr-better-auth-plugin.md](docs/adr-better-auth-plugin.md))
+- `@zanzojs/better-auth` — Better Auth plugin: `zanzoPlugin()`, `createZanzoHonoApp()`, `zanzoClientPlugin()` (see [docs/adr-better-auth-plugin.md](docs/adr-better-auth-plugin.md))
 
 ## Examples
 
 ### `examples/workspace-d1` — reference implementation (port 8787)
 
-ReBAC permission API + `@cloudflare/shell` filesystem worker. Two concerns, both in one worker:
+ReBAC permission API + `@cloudflare/shell` filesystem worker. Single worker, single port.
 
-- **Filesystem** — D1 + R2 storage via `@cloudflare/shell` `Workspace`. Large files (>~1.5MB) spill to R2 automatically. The `PermissionedBackend` class (`src/permissioned-backend.ts`) wraps `createWorkspaceStateBackend(workspace)` from `@cloudflare/shell` with `canDo()` permission checks before every operation — check then delegate, no reimplemented logic.
-- **Permissions** — `zanzo_tuples` D1 table, `ZanzoEngine` from `@zanzojs/core`. `canDo()` walks parent directory paths so owning `/projects/demo` grants access to all files inside it automatically.
-- **Schema split** — `src/schema-fs.ts` (File + Directory, driven by shell) + `src/schema-domain.ts` (User/Agent/Service actors + Project/CadModel/Drone). Merged via `mergeSchemas()` from `@zanzojs/core`.
-- **RPC contract** — `src/types.ts` exports `WorkspaceD1RPC`. Zero transitive deps — safe to import from any Worker. Implements: `grant`, `revoke`, `check`, `readFile`, `writeFile`, `appendFile`, `exists`, `stat`, `listDir`, `glob`, `mkdir`, `deleteFile`, `moveFile`, `copyFile`, `moveDir`, `copyDir`, `deleteDir`.
+- **Permissions** — `zanzoPlugin()` from `@zanzojs/better-auth`. Handles `check/grant/revoke/snapshot` with filesystem parent-path inheritance. Wired to `Workspace.onChange` for automatic tuple lifecycle on file create/delete.
+- **Filesystem** — D1 + R2 via `@cloudflare/shell` `Workspace`. `PermissionedBackend` wraps `createWorkspaceStateBackend()` — checks permissions before every operation.
+- **HTTP API** — `/zanzo/*` (plugin sub-app) + `/files/*`, `/ls/*`, `/exists/*`, `/stat/*`, `/glob`, `/mkdir/*`, `/append/*`, `/cp`, `/mv`, `/cpdir`, `/mvdir`, `/rmdir/*`.
+- **Live sync** — `ZanzoPermServer` Durable Object. Browser connects via WebSocket; gets a fresh permission snapshot on connect and after every tuple change.
+- **Schema split** — `src/schema-fs.ts` (File + Directory) + `src/schema-domain.ts` (User/Agent/Service + Project/CadModel/Drone). Merged via `mergeSchemas()`.
+- **RPC contract** — `src/types.ts` exports `WorkspaceD1RPC` for Workers Service Binding callers.
 
 ```bash
 mise run workspace-d1-start    # start worker (pitchfork, port 8787)
 mise run workspace-d1-stop     # stop
 mise run workspace-d1-reset    # wipe D1 state + restart
 mise run workspace-d1-logs     # tail logs
-mise run workspace-d1-test     # run integration tests (requires both workers)
-```
-
-### `examples/workspace-d1-app` — consumer example (port 8788)
-
-Public HTTP surface. Calls `workspace-d1` via Workers Service Binding (RPC) — no HTTP, no port construction. Imports only `WorkspaceD1RPC` from `types.ts`.
-
-- `wrangler.toml` — `[[services]] binding = "FILES" service = "workspace-d1"`. No `entrypoint` needed locally (default export). Production block adds `entrypoint = "WorkspaceD1"`.
-- Exposes: `GET /files/*`, `PUT /files/*`, `DELETE /files/*`, `GET /ls/*`, `POST /mv`, `POST /cp`, `POST /mkdir/*`, `POST /append/*`, `GET /exists/*`, `GET /stat/*`, `GET /glob`, `POST /mvdir`, `POST /cpdir`, `DELETE /rmdir/*`, `PUT /grant`, `DELETE /revoke`, `GET /check`.
-
-```bash
-mise run workspace-d1-app-start   # start (requires workspace-d1-start first)
-mise run workspace-d1-app-stop    # stop
-mise run workspace-d1-app-logs    # tail logs
+mise run workspace-d1-test     # run integration tests (single worker)
 ```
 
 ### Running tests
 
 ```bash
-mise run workspace-d1-reset       # wipe DB
-mise run workspace-d1-start       # start service worker
-mise run workspace-d1-app-start   # start app worker
-mise run workspace-d1-test        # 66 tests: read/write/stat/glob/mkdir/mv/cp/dir ops + permission checks
+mise run workspace-d1-reset    # wipe DB
+mise run workspace-d1-start    # start worker
+mise run workspace-d1-test     # 70+ tests: permissions, filesystem, /zanzo/* routes
 ```
 
 ---
