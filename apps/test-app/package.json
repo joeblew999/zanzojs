@@ -12,6 +12,7 @@
     "@zanzojs/core": "workspace:*",
     "@zanzojs/react": "workspace:*",
     "next": "^14.2.0",
+    "partysocket": "^1.1.16",
     "react": "^18.3.0",
     "react-dom": "^18.3.0"
   },

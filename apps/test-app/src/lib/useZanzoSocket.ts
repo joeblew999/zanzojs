@@ -1,57 +1,53 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import PartySocket from 'partysocket';
 
 /**
  * useZanzoSocket — subscribes to live permission snapshots via the
- * ZanzoPermServer Durable Object WebSocket.
+ * ZanzoPermServer Durable Object WebSocket, using partysocket for the browser.
+ *
+ * partysocket handles:
+ *   - automatic reconnection with exponential backoff
+ *   - message queuing while disconnected
+ *   - correct URL construction for partyserver room routing
  *
  * The DO sends { type: 'snapshot', data: Record<string, string[]> }
  * on connect and after every grant/revoke that affects this actor.
  *
- * URL pattern: ws://<host>/parties/zanzo-perm-server/<actor>
- * (partyserver middleware routing built into workspace-d1 worker)
+ * party name = 'zanzo-perm-server' (partyserver derives from class name)
+ * room       = actor string, e.g. 'User:alice'
  */
 export function useZanzoSocket(actor: string, workerUrl = 'http://localhost:8787') {
   const [snapshot, setSnapshot] = useState<Record<string, string[]>>({});
   const [connected, setConnected] = useState(false);
-  const wsRef = useRef<WebSocket | null>(null);
-  const actorRef = useRef(actor);
-  actorRef.current = actor;
+  const socketRef = useRef<PartySocket | null>(null);
 
-  const connect = useCallback(() => {
-    // Close any existing connection for a previous actor
-    wsRef.current?.close();
+  useEffect(() => {
+    socketRef.current?.close();
 
-    const wsBase = workerUrl.replace(/^http/, 'ws');
-    const url = `${wsBase}/parties/zanzo-perm-server/${encodeURIComponent(actor)}`;
-    const ws = new WebSocket(url);
-    wsRef.current = ws;
+    const socket = new PartySocket({
+      host: workerUrl.replace(/^https?:\/\//, ''),
+      party: 'zanzo-perm-server',
+      room: actor,
+    });
 
-    ws.onopen = () => setConnected(true);
-    ws.onclose = () => {
-      setConnected(false);
-      // Reconnect after 2s if actor hasn't changed
-      setTimeout(() => {
-        if (actorRef.current === actor) connect();
-      }, 2000);
-    };
-    ws.onerror = () => ws.close();
-    ws.onmessage = (ev) => {
+    socketRef.current = socket;
+
+    socket.addEventListener('open', () => setConnected(true));
+    socket.addEventListener('close', () => setConnected(false));
+    socket.addEventListener('message', (ev) => {
       try {
         const msg = JSON.parse(ev.data) as { type: string; data: Record<string, string[]> };
         if (msg.type === 'snapshot') setSnapshot(msg.data);
       } catch { /* ignore malformed */ }
+    });
+
+    return () => {
+      socket.close();
+      socketRef.current = null;
     };
   }, [actor, workerUrl]);
-
-  useEffect(() => {
-    connect();
-    return () => {
-      wsRef.current?.close();
-      wsRef.current = null;
-    };
-  }, [connect]);
 
   return { snapshot, connected };
 }
