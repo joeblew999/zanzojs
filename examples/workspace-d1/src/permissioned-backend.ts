@@ -43,44 +43,46 @@
  *   D1 table using the ZanzoEngine-generated SQL to check actor permissions.
  */
 
-// All State* types below are from '@cloudflare/shell'
-// (github.com/cloudflare/agents — packages/shell/src/).
-// StateBackend is the interface that createWorkspaceStateBackend() satisfies.
-import type {
-  StateBackend,
-  StateCapabilities,
-  StateStat,
-  StateMkdirOptions,
-  StateRmOptions,
-  StateCopyOptions,
-  StateMoveOptions,
-  StateDirent,
-  StateFindOptions,
-  StateFindEntry,
-  StateTreeOptions,
-  StateTreeNode,
-  StateTreeSummary,
-  StateSearchOptions,
-  StateTextMatch,
-  StateFileSearchResult,
-  StateReplaceResult,
-  StateReplaceInFilesOptions,
-  StateReplaceInFilesResult,
-  StateJsonWriteOptions,
-  StateJsonUpdateOperation,
-  StateJsonUpdateResult,
-  StateEdit,
-  StateEditInstruction,
-  StateEditPlan,
-  StateApplyEditsOptions,
-  StateApplyEditsResult,
-  StateArchiveEntry,
-  StateArchiveCreateResult,
-  StateArchiveExtractResult,
-  StateCompressionResult,
-  StateHashOptions,
-  StateFileDetection,
-} from '@cloudflare/shell';
+// StateBackend is the only exported type we need from @cloudflare/shell.
+// All State* sub-types are declared internally but NOT exported from the package.
+// We derive them from StateBackend's method signatures using TypeScript utility
+// types — this is robust against upstream type export changes.
+import type { StateBackend } from '@cloudflare/shell';
+
+// Derived from StateBackend method signatures
+// (github.com/cloudflare/agents — packages/shell/src/backend.d.ts)
+type StateCapabilities        = Awaited<ReturnType<StateBackend['getCapabilities']>>;
+type StateStat                = NonNullable<Awaited<ReturnType<StateBackend['stat']>>>;
+type StateMkdirOptions        = Parameters<StateBackend['mkdir']>[1];
+type StateRmOptions           = Parameters<StateBackend['rm']>[1];
+type StateCopyOptions         = Parameters<StateBackend['cp']>[2];
+type StateMoveOptions         = Parameters<StateBackend['mv']>[2];
+type StateDirent              = Awaited<ReturnType<StateBackend['readdirWithFileTypes']>>[number];
+type StateFindOptions         = Parameters<StateBackend['find']>[1];
+type StateFindEntry           = Awaited<ReturnType<StateBackend['find']>>[number];
+type StateTreeOptions         = Parameters<StateBackend['walkTree']>[1];
+type StateTreeNode            = Awaited<ReturnType<StateBackend['walkTree']>>;
+type StateTreeSummary         = Awaited<ReturnType<StateBackend['summarizeTree']>>;
+type StateSearchOptions       = Parameters<StateBackend['searchText']>[2];
+type StateTextMatch           = Awaited<ReturnType<StateBackend['searchText']>>[number];
+type StateFileSearchResult    = Awaited<ReturnType<StateBackend['searchFiles']>>[number];
+type StateReplaceResult       = Awaited<ReturnType<StateBackend['replaceInFile']>>;
+type StateReplaceInFilesOptions = Parameters<StateBackend['replaceInFiles']>[3];
+type StateReplaceInFilesResult = Awaited<ReturnType<StateBackend['replaceInFiles']>>;
+type StateJsonWriteOptions    = Parameters<StateBackend['writeJson']>[2];
+type StateJsonUpdateOperation = Parameters<StateBackend['updateJson']>[1][number];
+type StateJsonUpdateResult    = Awaited<ReturnType<StateBackend['updateJson']>>;
+type StateEdit                = Parameters<StateBackend['applyEdits']>[0][number];
+type StateEditInstruction     = Parameters<StateBackend['planEdits']>[0][number];
+type StateEditPlan            = Awaited<ReturnType<StateBackend['planEdits']>>;
+type StateApplyEditsOptions   = Parameters<StateBackend['applyEdits']>[1];
+type StateApplyEditsResult    = Awaited<ReturnType<StateBackend['applyEdits']>>;
+type StateArchiveEntry        = Awaited<ReturnType<StateBackend['listArchive']>>[number];
+type StateArchiveCreateResult = Awaited<ReturnType<StateBackend['createArchive']>>;
+type StateArchiveExtractResult = Awaited<ReturnType<StateBackend['extractArchive']>>;
+type StateCompressionResult   = Awaited<ReturnType<StateBackend['compressFile']>>;
+type StateHashOptions         = Parameters<StateBackend['hashFile']>[1];
+type StateFileDetection       = Awaited<ReturnType<StateBackend['detectFile']>>;
 
 type CanDoFn = (actor: string, action: string, type: string, path: string) => Promise<boolean>;
 
