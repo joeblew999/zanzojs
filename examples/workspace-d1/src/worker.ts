@@ -33,9 +33,8 @@ import { WorkerEntrypoint } from 'cloudflare:workers';
 import { Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { Workspace, createWorkspaceStateBackend } from '@cloudflare/shell';
-import { zanzoPlugin, createZanzoHonoApp } from '@zanzojs/better-auth';
+import { zanzoPlugin, createZanzoHonoApp, PermissionedBackend } from '@zanzojs/better-auth';
 import { engine } from './schema';
-import { PermissionedBackend } from './permissioned-backend';
 import type { WorkspaceD1RPC, FileStat } from './types';
 
 interface Env {

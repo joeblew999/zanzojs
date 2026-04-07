@@ -10,6 +10,11 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
+    },
+    "./migration": {
+      "types": "./dist/migration.d.ts",
+      "import": "./dist/migration.js",
+      "require": "./dist/migration.cjs"
     }
   },
   "main": "./dist/index.cjs",
@@ -24,12 +29,14 @@
     "test:types": "vitest run --typecheck"
   },
   "peerDependencies": {
-    "@zanzojs/core": "^0.3.0",
-    "better-auth":   ">=1.0.0",
-    "hono":          ">=4.0.0"
+    "@zanzojs/core":    "^0.3.0",
+    "better-auth":      ">=1.0.0",
+    "hono":             ">=4.0.0",
+    "@cloudflare/shell": "*"
   },
   "peerDependenciesOptional": {
-    "better-auth": true
+    "better-auth":       true,
+    "@cloudflare/shell": true
   },
   "devDependencies": {
     "@zanzojs/core": "workspace:*",
