@@ -26,4 +26,4 @@ export type { } from './permissioned-backend';
 
 // Migration SQL — apply once to your D1 database before using zanzoPlugin.
 // Also importable from '@zanzojs/better-auth/migration' for tree-shaking.
-export { ZANZO_MIGRATION_SQL } from './migration';
+export { ZANZO_MIGRATION_SQL, ZANZO_MIGRATION_SQL_PG } from './migration';
