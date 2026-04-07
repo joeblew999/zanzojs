@@ -1,53 +1,37 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import PartySocket from 'partysocket';
+import { useEffect, useState, useCallback } from 'react';
 
 /**
- * useZanzoSocket — subscribes to live permission snapshots via the
- * ZanzoPermServer Durable Object WebSocket, using partysocket for the browser.
- *
- * partysocket handles:
- *   - automatic reconnection with exponential backoff
- *   - message queuing while disconnected
- *   - correct URL construction for partyserver room routing
- *
- * The DO sends { type: 'snapshot', data: Record<string, string[]> }
- * on connect and after every grant/revoke that affects this actor.
- *
- * party name = 'zanzo-perm-server' (partyserver derives from class name)
- * room       = actor string, e.g. 'User:alice'
+ * usePermissions — fetches the permission snapshot for the given actor.
+ * Call refresh() after any grant/revoke to get updated permissions.
  */
-export function useZanzoSocket(actor: string, workerUrl = 'http://localhost:8787') {
+export function usePermissions(actor: string, workerUrl = 'http://localhost:8787') {
   const [snapshot, setSnapshot] = useState<Record<string, string[]>>({});
   const [connected, setConnected] = useState(false);
-  const socketRef = useRef<PartySocket | null>(null);
 
-  useEffect(() => {
-    socketRef.current?.close();
-
-    const socket = new PartySocket({
-      host: workerUrl.replace(/^https?:\/\//, ''),
-      party: 'zanzo-perm-server',
-      room: actor,
-    });
-
-    socketRef.current = socket;
-
-    socket.addEventListener('open', () => setConnected(true));
-    socket.addEventListener('close', () => setConnected(false));
-    socket.addEventListener('message', (ev) => {
-      try {
-        const msg = JSON.parse(ev.data) as { type: string; data: Record<string, string[]> };
-        if (msg.type === 'snapshot') setSnapshot(msg.data);
-      } catch { /* ignore malformed */ }
-    });
-
-    return () => {
-      socket.close();
-      socketRef.current = null;
-    };
+  const refresh = useCallback(async () => {
+    try {
+      const res = await fetch(
+        `${workerUrl}/zanzo/snapshot?actor=${encodeURIComponent(actor)}`
+      );
+      if (!res.ok) return;
+      const data = await res.json() as { snapshot: Record<string, string[]> };
+      setSnapshot(data.snapshot ?? {});
+      setConnected(true);
+    } catch {
+      setConnected(false);
+    }
   }, [actor, workerUrl]);
 
-  return { snapshot, connected };
+  useEffect(() => {
+    setConnected(false);
+    setSnapshot({});
+    refresh();
+  }, [refresh]);
+
+  return { snapshot, connected, refresh };
 }
+
+// Keep the old name as an alias so page.tsx import doesn't need changing
+export { usePermissions as useZanzoSocket };

@@ -339,9 +339,7 @@ export default function HomePage() {
     const [activeTab, setActiveTab] = useState<'permissions' | 'files'>('permissions');
 
     const actor = `User:${selectedUser}`;
-    // Live permission sync via ZanzoPermServer DO WebSocket.
-    // Snapshot updates instantly when any grant/revoke fires on the worker.
-    const { snapshot, connected } = useZanzoSocket(actor);
+    const { snapshot, connected, refresh } = useZanzoSocket(actor);
 
     const currentUser = USERS.find((u) => u.id === selectedUser)!;
 
@@ -419,7 +417,7 @@ export default function HomePage() {
                                     </Suspense>
                                 </ZanzoProvider>
                             )}
-                            <GrantAccess onGrant={() => {/* snapshot auto-updates via WebSocket */}} />
+                            <GrantAccess onGrant={refresh} />
                         </div>
                     ) : (
                         <div style={{ height: '100%' }}>
