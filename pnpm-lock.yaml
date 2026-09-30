@@ -261,6 +261,10 @@ importers:
         version: 0.15.1
 
   packages/better-auth:
+    dependencies:
+      '@cloudflare/shell':
+        specifier: '*'
+        version: 0.3.1(@modelcontextprotocol/sdk@1.26.0(@cfworker/json-schema@4.1.1)(zod@4.3.6))(ai@6.0.142(zod@4.3.6))(zod@4.3.6)
     devDependencies:
       '@cloudflare/workers-types':
         specifier: ^4.20260317.1
